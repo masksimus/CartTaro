@@ -1,0 +1,1796 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#0a0612">
+<title>Карты Таро · Расклад дня</title>
+
+<!-- VK Bridge -->
+<script src="https://unpkg.com/@vkontakte/vk-bridge@2.14.0/dist/browser.min.js"></script>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600;700&family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
+
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+  :root {
+    --bg-deep: #0a0612;
+    --bg-night: #14102a;
+    --bg-velvet: #1d1638;
+    --gold: #d4af37;
+    --gold-bright: #f4d36b;
+    --gold-dim: #8a7028;
+    --burgundy: #6b1a2c;
+    --burgundy-bright: #a02943;
+    --ivory: #f5ecd7;
+    --ivory-dim: #c4b696;
+    --text-mute: #7a6f8e;
+    --line: rgba(212, 175, 55, 0.18);
+    --safe-top: env(safe-area-inset-top, 0px);
+    --safe-bottom: env(safe-area-inset-bottom, 0px);
+  }
+
+  html, body {
+    background: var(--bg-deep);
+    color: var(--ivory);
+    font-family: 'Cormorant Garamond', serif;
+    height: 100%;
+    overflow-x: hidden;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  body {
+    background:
+      radial-gradient(ellipse at top, rgba(107, 26, 44, 0.25), transparent 55%),
+      radial-gradient(ellipse at bottom, rgba(29, 22, 56, 0.8), transparent 60%),
+      var(--bg-deep);
+    min-height: 100vh;
+    position: relative;
+    padding-top: var(--safe-top);
+  }
+
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      radial-gradient(1px 1px at 23% 12%, rgba(244, 211, 107, 0.7), transparent),
+      radial-gradient(1px 1px at 67% 28%, rgba(245, 236, 215, 0.5), transparent),
+      radial-gradient(1px 1px at 89% 47%, rgba(244, 211, 107, 0.4), transparent),
+      radial-gradient(1px 1px at 14% 73%, rgba(245, 236, 215, 0.6), transparent),
+      radial-gradient(1px 1px at 78% 84%, rgba(244, 211, 107, 0.5), transparent),
+      radial-gradient(2px 2px at 45% 38%, rgba(245, 236, 215, 0.3), transparent),
+      radial-gradient(1px 1px at 92% 18%, rgba(244, 211, 107, 0.6), transparent),
+      radial-gradient(1px 1px at 33% 91%, rgba(245, 236, 215, 0.4), transparent);
+    pointer-events: none;
+    animation: twinkle 8s ease-in-out infinite;
+    z-index: 0;
+  }
+
+  @keyframes twinkle {
+    0%, 100% { opacity: 0.6; }
+    50% { opacity: 1; }
+  }
+
+  .app {
+    max-width: 480px;
+    margin: 0 auto;
+    min-height: 100vh;
+    position: relative;
+    padding-bottom: calc(80px + var(--safe-bottom));
+    z-index: 1;
+  }
+
+  /* Splash / Loading screen */
+  .splash {
+    position: fixed;
+    inset: 0;
+    background: var(--bg-deep);
+    z-index: 200;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 24px;
+    transition: opacity 0.6s ease;
+  }
+  .splash.hide { opacity: 0; pointer-events: none; }
+
+  .splash-emblem {
+    width: 80px;
+    height: 80px;
+    border: 1px solid var(--gold);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Cinzel', serif;
+    font-size: 36px;
+    color: var(--gold);
+    background: radial-gradient(circle, rgba(212, 175, 55, 0.15), transparent);
+    animation: pulseGlow 2s ease-in-out infinite;
+  }
+
+  @keyframes pulseGlow {
+    0%, 100% { box-shadow: 0 0 20px rgba(212, 175, 55, 0.3); }
+    50% { box-shadow: 0 0 50px rgba(212, 175, 55, 0.6); }
+  }
+
+  .splash-title {
+    font-family: 'Cinzel', serif;
+    font-size: 22px;
+    letter-spacing: 4px;
+    color: var(--ivory);
+  }
+
+  .splash-sub {
+    color: var(--ivory-dim);
+    font-style: italic;
+    font-size: 14px;
+  }
+
+  /* Header */
+  .header {
+    padding: 24px 24px 8px;
+    text-align: center;
+    position: relative;
+  }
+
+  .header-line {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 14px;
+    margin-bottom: 4px;
+  }
+
+  .header-line::before, .header-line::after {
+    content: '';
+    height: 1px;
+    width: 36px;
+    background: linear-gradient(90deg, transparent, var(--gold), transparent);
+  }
+
+  .header-line span {
+    color: var(--gold);
+    font-family: 'Cinzel', serif;
+    font-size: 11px;
+    letter-spacing: 4px;
+    text-transform: uppercase;
+  }
+
+  .header h1 {
+    font-family: 'Cinzel', serif;
+    font-weight: 600;
+    font-size: 26px;
+    letter-spacing: 3px;
+    color: var(--ivory);
+    margin-bottom: 6px;
+  }
+
+  .header .subtitle {
+    font-style: italic;
+    color: var(--ivory-dim);
+    font-size: 15px;
+  }
+
+  .greeting {
+    margin-top: 10px;
+    color: var(--gold);
+    font-style: italic;
+    font-size: 14px;
+  }
+
+  /* Screens */
+  .screen { display: none; padding: 0 20px; animation: fadeIn 0.4s ease; }
+  .screen.active { display: block; }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* Section title */
+  .section-title {
+    font-family: 'Cinzel', serif;
+    font-size: 13px;
+    letter-spacing: 3px;
+    color: var(--gold);
+    text-transform: uppercase;
+    text-align: center;
+    margin: 20px 0 18px;
+  }
+
+  /* Daily card */
+  .daily-card-section { text-align: center; }
+
+  .daily-card-frame {
+    margin: 0 auto;
+    width: 220px;
+    height: 360px;
+    perspective: 1200px;
+    cursor: pointer;
+    position: relative;
+  }
+
+  .daily-card-inner {
+    width: 100%;
+    height: 100%;
+    transition: transform 1.2s cubic-bezier(0.7, 0, 0.3, 1);
+    transform-style: preserve-3d;
+    position: relative;
+  }
+
+  .daily-card-frame.flipped .daily-card-inner {
+    transform: rotateY(180deg);
+  }
+
+  .card-face {
+    position: absolute;
+    inset: 0;
+    backface-visibility: hidden;
+    border-radius: 14px;
+    overflow: hidden;
+    box-shadow:
+      0 0 0 1px var(--gold-dim),
+      0 0 0 6px var(--bg-night),
+      0 0 0 7px var(--gold),
+      0 30px 60px -15px rgba(0, 0, 0, 0.7),
+      0 0 80px rgba(212, 175, 55, 0.15);
+  }
+
+  .card-back {
+    background: radial-gradient(circle at 50% 50%, var(--burgundy) 0%, var(--burgundy) 30%, #3a0e1a 70%, #1a0610 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .card-back-pattern {
+    position: absolute;
+    inset: 12px;
+    border: 1px solid var(--gold);
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .card-back-emblem {
+    width: 90px;
+    height: 90px;
+    border: 1px solid var(--gold);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: radial-gradient(circle, rgba(212, 175, 55, 0.15), transparent);
+    position: relative;
+  }
+
+  .card-back-emblem::before {
+    content: '';
+    position: absolute;
+    inset: -8px;
+    border: 1px solid rgba(212, 175, 55, 0.3);
+    border-radius: 50%;
+  }
+
+  .card-back-emblem-symbol {
+    font-family: 'Cinzel', serif;
+    font-size: 38px;
+    color: var(--gold);
+  }
+
+  .card-back-corners { position: absolute; inset: 24px; pointer-events: none; }
+  .card-back-corners::before, .card-back-corners::after {
+    content: '✦';
+    position: absolute;
+    color: var(--gold);
+    font-size: 14px;
+    opacity: 0.7;
+  }
+  .card-back-corners::before { top: 0; left: 0; }
+  .card-back-corners::after { bottom: 0; right: 0; }
+
+  .card-front {
+    transform: rotateY(180deg);
+    background: linear-gradient(180deg, #2a1f3d 0%, #1a1230 50%, #0f0a20 100%);
+    padding: 16px 14px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .card-front-border {
+    position: absolute;
+    inset: 8px;
+    border: 1px solid var(--gold);
+    border-radius: 8px;
+    pointer-events: none;
+  }
+
+  .card-roman {
+    font-family: 'Cinzel', serif;
+    font-size: 16px;
+    color: var(--gold);
+    letter-spacing: 2px;
+    margin-top: 10px;
+    margin-bottom: 8px;
+  }
+
+  .card-divider {
+    width: 60%;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--gold), transparent);
+    margin-bottom: 22px;
+  }
+
+  .card-symbol {
+    width: 168px;
+    height: 240px;
+    margin-bottom: 14px;
+    border-radius: 4px;
+    overflow: hidden;
+    background: #1a1230;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(212, 175, 55, 0.4);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+  }
+  .card-symbol img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+  .card-symbol .fallback {
+    font-size: 84px;
+    line-height: 1;
+    filter: drop-shadow(0 4px 20px rgba(212, 175, 55, 0.4));
+  }
+
+  .card-divider-bottom {
+    width: 60%;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--gold), transparent);
+    margin-bottom: 14px;
+  }
+
+  .card-name {
+    font-family: 'Cinzel', serif;
+    font-size: 14px;
+    color: var(--ivory);
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    text-align: center;
+  }
+
+  .draw-hint {
+    margin-top: 22px;
+    color: var(--ivory-dim);
+    font-style: italic;
+    font-size: 16px;
+    animation: pulse 2.5s ease-in-out infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 0.6; }
+    50% { opacity: 1; }
+  }
+
+  .card-meaning {
+    margin-top: 24px;
+    padding: 22px 20px;
+    background: linear-gradient(180deg, rgba(29, 22, 56, 0.8), rgba(20, 16, 42, 0.6));
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    display: none;
+    animation: fadeIn 0.6s ease 0.3s both;
+  }
+
+  .card-meaning.show { display: block; }
+
+  .card-meaning h3 {
+    font-family: 'Cinzel', serif;
+    color: var(--gold);
+    font-size: 13px;
+    letter-spacing: 2px;
+    margin-bottom: 10px;
+    text-align: center;
+  }
+
+  .card-meaning .short {
+    color: var(--ivory);
+    font-style: italic;
+    text-align: center;
+    margin-bottom: 14px;
+    font-size: 17px;
+    font-weight: 500;
+  }
+
+  .card-meaning .full {
+    color: var(--ivory-dim);
+    line-height: 1.6;
+    font-size: 16px;
+  }
+
+  .come-tomorrow {
+    margin-top: 18px;
+    text-align: center;
+    color: var(--text-mute);
+    font-size: 14px;
+    font-style: italic;
+  }
+
+  .come-tomorrow strong { color: var(--gold); font-style: normal; }
+
+  /* Spreads */
+  .intro-text {
+    text-align: center;
+    color: var(--ivory-dim);
+    font-style: italic;
+    font-size: 16px;
+    margin: 16px 0 24px;
+    line-height: 1.5;
+  }
+
+  .spread-card {
+    background: linear-gradient(135deg, rgba(29, 22, 56, 0.9), rgba(20, 16, 42, 0.7));
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 18px 18px 18px 80px;
+    margin-bottom: 14px;
+    position: relative;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    overflow: hidden;
+  }
+
+  .spread-card:active {
+    transform: scale(0.98);
+    border-color: var(--gold);
+  }
+
+  .spread-icon {
+    position: absolute;
+    left: 18px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 48px;
+    height: 48px;
+    border: 1px solid var(--gold);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 22px;
+    background: radial-gradient(circle, rgba(212, 175, 55, 0.15), transparent);
+  }
+
+  .spread-name {
+    font-family: 'Cinzel', serif;
+    font-size: 15px;
+    letter-spacing: 1.5px;
+    color: var(--ivory);
+    margin-bottom: 4px;
+  }
+
+  .spread-desc {
+    font-size: 14px;
+    color: var(--text-mute);
+    margin-bottom: 8px;
+  }
+
+  .spread-price {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-family: 'Cinzel', serif;
+    font-size: 13px;
+    color: var(--gold);
+    letter-spacing: 1px;
+  }
+
+  .vote-icon {
+    display: inline-block;
+    width: 16px;
+    height: 16px;
+    background: var(--gold);
+    color: var(--bg-deep);
+    border-radius: 50%;
+    text-align: center;
+    line-height: 16px;
+    font-size: 11px;
+    font-weight: 700;
+    font-family: 'Cinzel', serif;
+  }
+
+  /* Info promo */
+  .info-promo {
+    margin: 28px 0 8px;
+    padding: 22px 20px;
+    background:
+      linear-gradient(135deg, rgba(29, 22, 56, 0.7), rgba(20, 16, 42, 0.5)),
+      radial-gradient(circle at 80% 20%, rgba(212, 175, 55, 0.12), transparent 50%);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    position: relative;
+    overflow: hidden;
+    text-align: center;
+  }
+
+  .info-promo::after {
+    content: '✦';
+    position: absolute;
+    top: 14px;
+    right: 18px;
+    color: var(--gold);
+    font-size: 18px;
+    opacity: 0.5;
+  }
+
+  .info-tag {
+    font-family: 'Cinzel', serif;
+    font-size: 12px;
+    letter-spacing: 3px;
+    color: var(--gold-bright);
+    text-transform: uppercase;
+    margin-bottom: 10px;
+  }
+
+  .info-promo p {
+    color: var(--ivory-dim);
+    font-size: 15px;
+    line-height: 1.5;
+  }
+
+  .btn-primary {
+    display: block;
+    width: 100%;
+    padding: 14px;
+    background: linear-gradient(135deg, var(--gold), var(--gold-bright));
+    color: var(--bg-deep);
+    border: none;
+    border-radius: 10px;
+    font-family: 'Cinzel', serif;
+    font-size: 13px;
+    letter-spacing: 2.5px;
+    text-transform: uppercase;
+    font-weight: 600;
+    cursor: pointer;
+    transition: transform 0.2s;
+    box-shadow: 0 4px 20px rgba(212, 175, 55, 0.3);
+  }
+
+  .btn-primary:active { transform: scale(0.97); }
+  .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  .btn-secondary {
+    display: block;
+    width: 100%;
+    padding: 14px;
+    background: transparent;
+    color: var(--ivory-dim);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    font-family: 'Cinzel', serif;
+    font-size: 12px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    cursor: pointer;
+    margin-top: 10px;
+  }
+
+  /* History */
+  .history-empty {
+    text-align: center;
+    padding: 60px 20px;
+    color: var(--text-mute);
+    font-style: italic;
+  }
+
+  .history-empty .symbol {
+    font-size: 48px;
+    color: var(--gold);
+    opacity: 0.3;
+    margin-bottom: 16px;
+  }
+
+  .history-item {
+    display: flex;
+    gap: 14px;
+    padding: 14px;
+    background: rgba(29, 22, 56, 0.5);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    margin-bottom: 10px;
+    align-items: center;
+  }
+
+  .history-mini {
+    width: 44px;
+    height: 60px;
+    border-radius: 4px;
+    background: #1a1230;
+    border: 1px solid var(--gold-dim);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 22px;
+    flex-shrink: 0;
+    overflow: hidden;
+  }
+  .history-mini img { width: 100%; height: 100%; object-fit: cover; display: block; }
+
+  .history-info { flex: 1; }
+  .history-info .name { font-family: 'Cinzel', serif; color: var(--ivory); font-size: 13px; letter-spacing: 1px; }
+  .history-info .date { color: var(--text-mute); font-size: 13px; font-style: italic; }
+
+  /* Settings / About */
+  .settings-card {
+    background: rgba(29, 22, 56, 0.5);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 18px;
+    margin-bottom: 12px;
+  }
+
+  .settings-card h3 {
+    font-family: 'Cinzel', serif;
+    font-size: 13px;
+    letter-spacing: 2px;
+    color: var(--gold);
+    margin-bottom: 10px;
+    text-transform: uppercase;
+  }
+
+  .settings-card p {
+    color: var(--ivory-dim);
+    line-height: 1.6;
+    font-size: 15px;
+  }
+
+  .settings-link {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 14px 16px;
+    background: rgba(29, 22, 56, 0.5);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    margin-bottom: 8px;
+    color: var(--ivory);
+    font-size: 15px;
+    cursor: pointer;
+  }
+
+  .settings-link::after { content: '›'; color: var(--gold); font-size: 22px; }
+  .settings-link:active { background: rgba(29, 22, 56, 0.8); }
+
+  /* Tab bar */
+  .tab-bar {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    max-width: 480px;
+    margin: 0 auto;
+    background: rgba(10, 6, 18, 0.95);
+    backdrop-filter: blur(12px);
+    border-top: 1px solid var(--line);
+    display: flex;
+    padding: 10px 0 calc(14px + var(--safe-bottom));
+    z-index: 50;
+  }
+
+  .tab {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    background: none;
+    border: none;
+    color: var(--text-mute);
+    cursor: pointer;
+    padding: 6px;
+    transition: color 0.3s;
+    font-family: inherit;
+  }
+
+  .tab.active { color: var(--gold); }
+  .tab-icon { font-size: 20px; }
+  .tab-label {
+    font-family: 'Cinzel', serif;
+    font-size: 9px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+  }
+
+  /* Modal */
+  .modal {
+    position: fixed;
+    inset: 0;
+    background: rgba(10, 6, 18, 0.92);
+    backdrop-filter: blur(8px);
+    z-index: 100;
+    display: none;
+    align-items: flex-end;
+    justify-content: center;
+    animation: modalFade 0.3s ease;
+  }
+
+  .modal.show { display: flex; }
+
+  @keyframes modalFade {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+
+  .modal-content {
+    width: 100%;
+    max-width: 480px;
+    background: linear-gradient(180deg, var(--bg-night), var(--bg-deep));
+    border-top: 1px solid var(--gold);
+    border-radius: 20px 20px 0 0;
+    padding: 28px 24px calc(32px + var(--safe-bottom));
+    position: relative;
+    animation: slideUp 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    max-height: 90vh;
+    overflow-y: auto;
+  }
+
+  @keyframes slideUp {
+    from { transform: translateY(100%); }
+    to { transform: translateY(0); }
+  }
+
+  .modal-handle {
+    width: 44px;
+    height: 4px;
+    background: var(--text-mute);
+    border-radius: 2px;
+    margin: 0 auto 18px;
+  }
+
+  .modal-close {
+    position: absolute;
+    top: 18px;
+    right: 18px;
+    width: 32px;
+    height: 32px;
+    border: 1px solid var(--line);
+    border-radius: 50%;
+    background: none;
+    color: var(--ivory-dim);
+    font-size: 18px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .paywall-icon {
+    width: 70px;
+    height: 70px;
+    margin: 8px auto 16px;
+    border: 1px solid var(--gold);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 30px;
+    background: radial-gradient(circle, rgba(212, 175, 55, 0.2), transparent);
+  }
+
+  .modal h2 {
+    font-family: 'Cinzel', serif;
+    font-size: 22px;
+    text-align: center;
+    color: var(--ivory);
+    letter-spacing: 1.5px;
+    margin-bottom: 8px;
+  }
+
+  .modal-subtitle {
+    text-align: center;
+    color: var(--ivory-dim);
+    font-style: italic;
+    margin-bottom: 22px;
+    font-size: 16px;
+    line-height: 1.5;
+  }
+
+  .ad-notice {
+    margin: 24px 0;
+    padding: 16px;
+    background: rgba(212, 175, 55, 0.08);
+    border: 1px solid var(--gold);
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+  .ad-notice-icon {
+    width: 44px;
+    height: 44px;
+    flex-shrink: 0;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--gold), var(--gold-bright));
+    color: var(--bg-deep);
+    font-size: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .ad-notice-text { display: flex; flex-direction: column; }
+  .ad-notice-text strong {
+    font-family: 'Cinzel', serif;
+    color: var(--ivory);
+    font-size: 13px;
+    letter-spacing: 1.5px;
+    margin-bottom: 2px;
+  }
+  .ad-notice-text span {
+    color: var(--ivory-dim);
+    font-style: italic;
+    font-size: 14px;
+  }
+
+  /* Spread reveal cards */
+  .spread-cards-row {
+    display: flex;
+    gap: 8px;
+    justify-content: center;
+    margin: 20px 0;
+    perspective: 1000px;
+    flex-wrap: wrap;
+  }
+
+  .spread-card-mini {
+    width: 90px;
+    height: 140px;
+    border-radius: 8px;
+    background: linear-gradient(180deg, #2a1f3d, #1a1230);
+    border: 1px solid var(--gold);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    padding: 8px;
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.5);
+    opacity: 0;
+    transform: translateY(20px) rotateY(180deg);
+    animation: revealCard 0.8s ease forwards;
+    position: relative;
+  }
+
+  .spread-card-mini::before {
+    content: '';
+    position: absolute;
+    inset: 4px;
+    border: 1px solid rgba(212, 175, 55, 0.4);
+    border-radius: 5px;
+  }
+
+  .spread-card-mini:nth-child(1) { animation-delay: 0.1s; }
+  .spread-card-mini:nth-child(2) { animation-delay: 0.4s; }
+  .spread-card-mini:nth-child(3) { animation-delay: 0.7s; }
+  .spread-card-mini:nth-child(4) { animation-delay: 1.0s; }
+  .spread-card-mini:nth-child(5) { animation-delay: 1.3s; }
+  .spread-card-mini:nth-child(6) { animation-delay: 1.6s; }
+  .spread-card-mini:nth-child(7) { animation-delay: 1.9s; }
+  .spread-card-mini:nth-child(8) { animation-delay: 2.2s; }
+  .spread-card-mini:nth-child(9) { animation-delay: 2.5s; }
+  .spread-card-mini:nth-child(10){ animation-delay: 2.8s; }
+  .spread-card-mini:nth-child(11){ animation-delay: 3.1s; }
+  .spread-card-mini:nth-child(12){ animation-delay: 3.4s; }
+
+  @keyframes revealCard { to { opacity: 1; transform: translateY(0) rotateY(0); } }
+
+  .mini-position {
+    font-family: 'Cinzel', serif;
+    color: var(--gold);
+    font-size: 9px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    margin-bottom: 4px;
+  }
+
+  .mini-symbol {
+    width: 70px;
+    height: 100px;
+    margin: 4px 0;
+    border-radius: 3px;
+    overflow: hidden;
+    background: #1a1230;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .mini-symbol img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .mini-symbol .fallback { font-size: 32px; }
+
+  .mini-name {
+    font-family: 'Cinzel', serif;
+    font-size: 9px;
+    color: var(--ivory);
+    text-align: center;
+    letter-spacing: 0.5px;
+  }
+
+  .spread-result-text {
+    margin-top: 22px;
+    padding: 18px;
+    background: rgba(20, 16, 42, 0.6);
+    border-radius: 10px;
+    line-height: 1.6;
+    color: var(--ivory-dim);
+    font-size: 15px;
+  }
+
+  .spread-result-block + .spread-result-block { margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--line); }
+
+  .spread-result-block h4 {
+    font-family: 'Cinzel', serif;
+    color: var(--gold);
+    font-size: 12px;
+    letter-spacing: 2px;
+    margin-bottom: 6px;
+  }
+
+  /* Toast */
+  .toast {
+    position: fixed;
+    bottom: 100px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--bg-velvet);
+    border: 1px solid var(--gold);
+    color: var(--ivory);
+    padding: 12px 20px;
+    border-radius: 8px;
+    font-size: 14px;
+    z-index: 300;
+    opacity: 0;
+    transition: opacity 0.3s, transform 0.3s;
+    pointer-events: none;
+    text-align: center;
+    max-width: 90%;
+  }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(-10px); }
+
+  /* Consent screen */
+  .consent-screen {
+    position: fixed;
+    inset: 0;
+    background: var(--bg-deep);
+    z-index: 150;
+    display: none;
+    flex-direction: column;
+    padding: 40px 24px;
+    overflow-y: auto;
+  }
+  .consent-screen.show { display: flex; }
+
+  .consent-screen h2 {
+    font-family: 'Cinzel', serif;
+    font-size: 22px;
+    color: var(--ivory);
+    margin-bottom: 16px;
+    letter-spacing: 1.5px;
+    text-align: center;
+  }
+
+  .consent-screen p {
+    color: var(--ivory-dim);
+    line-height: 1.7;
+    font-size: 15px;
+    margin-bottom: 14px;
+  }
+
+  .consent-screen .agree-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    margin: 20px 0;
+    padding: 14px;
+    background: rgba(29, 22, 56, 0.5);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+  }
+
+  .consent-screen input[type="checkbox"] {
+    width: 22px;
+    height: 22px;
+    accent-color: var(--gold);
+    flex-shrink: 0;
+    margin-top: 2px;
+  }
+
+  .consent-screen label {
+    color: var(--ivory);
+    font-size: 14px;
+    line-height: 1.5;
+  }
+
+  .consent-screen a { color: var(--gold); text-decoration: underline; }
+
+  .policy-box {
+    max-height: 38vh;
+    overflow-y: auto;
+    margin: 18px 0 20px;
+    padding: 18px;
+    background: rgba(29, 22, 56, 0.5);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+  }
+  .policy-box h3 {
+    font-family: 'Cinzel', serif;
+    color: var(--gold);
+    font-size: 13px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    margin-bottom: 12px;
+    text-align: center;
+  }
+  .policy-box p {
+    color: var(--ivory-dim);
+    font-size: 14px;
+    line-height: 1.6;
+    margin-bottom: 10px;
+  }
+  .policy-box p strong { color: var(--ivory); }
+
+  /* Helpers */
+  .text-link { color: var(--gold); cursor: pointer; text-decoration: underline; }
+</style>
+</head>
+<body>
+
+<!-- Splash -->
+<div class="splash" id="splash">
+  <div class="splash-emblem">✦</div>
+  <div class="splash-title">КАРТЫ ТАРО</div>
+  <div class="splash-sub">Откройте свою судьбу…</div>
+</div>
+
+<!-- Privacy consent (first launch) -->
+<div class="consent-screen" id="consentScreen">
+  <h2>Добро пожаловать</h2>
+  <p>Приложение «Карты Таро» — развлекательный сервис для гадания на картах Старших Арканов. Все предсказания носят развлекательный характер и не являются профессиональной консультацией.</p>
+
+  <div class="policy-box">
+    <h3>Политика конфиденциальности</h3>
+    <p><strong>Какие данные мы используем.</strong> Идентификатор пользователя VK (только для отображения вашего имени на приветственном экране) и встроенное хранилище VK для сохранения карты дня и истории раскладов.</p>
+    <p><strong>Передача третьим лицам.</strong> Ваши данные не передаются третьим лицам. Все данные хранятся в безопасном хранилище VK.</p>
+    <p><strong>Реклама.</strong> Приложение бесплатное и поддерживается за счёт показов рекламы VK перед открытием раскладов. Никакой персональной информации рекламодателям не передаётся — рекламу обслуживает сама платформа VK.</p>
+    <p><strong>Возраст.</strong> Приложение предназначено для пользователей старше 18 лет.</p>
+    <p><strong>Развлекательный характер.</strong> Все предсказания и интерпретации карт носят исключительно развлекательный характер. Не принимайте важных жизненных решений на их основе.</p>
+  </div>
+
+  <div class="agree-row">
+    <input type="checkbox" id="agreeAge">
+    <label for="agreeAge">Мне исполнилось 18 лет</label>
+  </div>
+
+  <div class="agree-row">
+    <input type="checkbox" id="agreePolicy">
+    <label for="agreePolicy">Я прочитал(а) и принимаю политику конфиденциальности выше</label>
+  </div>
+
+  <button class="btn-primary" onclick="acceptConsent()">Войти в приложение</button>
+</div>
+
+<div class="app" id="mainApp" style="display: none;">
+
+  <!-- Header -->
+  <header class="header">
+    <div class="header-line"><span>Mystica</span></div>
+    <h1>Карты Таро</h1>
+    <p class="subtitle">Ваш путеводитель по судьбе</p>
+    <p class="greeting" id="greeting"></p>
+  </header>
+
+  <!-- Home -->
+  <main class="screen active" id="screen-home">
+    <section class="daily-card-section">
+      <div class="section-title">Карта дня</div>
+
+      <div class="daily-card-frame" id="dailyCardFrame" onclick="drawDailyCard()">
+        <div class="daily-card-inner" id="dailyCardInner">
+          <div class="card-face card-back">
+            <div class="card-back-pattern">
+              <div class="card-back-emblem">
+                <span class="card-back-emblem-symbol">✦</span>
+              </div>
+            </div>
+            <div class="card-back-corners"></div>
+          </div>
+          <div class="card-face card-front" id="dailyCardFront">
+            <div class="card-front-border"></div>
+            <div class="card-roman" id="cardRoman">—</div>
+            <div class="card-divider"></div>
+            <div class="card-symbol" id="cardSymbol"></div>
+            <div class="card-divider-bottom"></div>
+            <div class="card-name" id="cardName">—</div>
+          </div>
+        </div>
+      </div>
+
+      <p class="draw-hint" id="drawHint">Коснитесь карты, чтобы узнать своё послание</p>
+
+      <div class="card-meaning" id="cardMeaning">
+        <h3>Послание дня</h3>
+        <div class="short" id="meaningShort"></div>
+        <div class="full" id="meaningFull"></div>
+        <div class="come-tomorrow">Следующая карта дня — <strong>завтра</strong></div>
+      </div>
+    </section>
+
+    <div class="info-promo">
+      <div class="info-tag">Все расклады бесплатны</div>
+      <p>Получайте полные расклады на любовь, карьеру и судьбу — без ограничений. Поддержите проект, посмотрев короткое видео перед каждым раскладом.</p>
+    </div>
+  </main>
+
+  <!-- Spreads -->
+  <main class="screen" id="screen-spreads">
+    <p class="intro-text">Выберите расклад, который ответит на ваш вопрос.<br>Каждая карта откроет свою тайну.</p>
+
+    <div class="spread-card" onclick="openSpread('love')">
+      <div class="spread-icon">💞</div>
+      <div class="spread-name">Расклад на любовь</div>
+      <div class="spread-desc">3 карты · Он, Вы, Будущее</div>
+      <div class="spread-price"><span class="vote-icon">▶</span> Бесплатно · Видео</div>
+    </div>
+
+    <div class="spread-card" onclick="openSpread('career')">
+      <div class="spread-icon">⚔️</div>
+      <div class="spread-name">Расклад на карьеру</div>
+      <div class="spread-desc">3 карты · Сейчас, Препятствие, Решение</div>
+      <div class="spread-price"><span class="vote-icon">▶</span> Бесплатно · Видео</div>
+    </div>
+
+    <div class="spread-card" onclick="openSpread('past')">
+      <div class="spread-icon">🕯️</div>
+      <div class="spread-name">Прошлое — Настоящее — Будущее</div>
+      <div class="spread-desc">3 карты · Классический расклад</div>
+      <div class="spread-price"><span class="vote-icon">▶</span> Бесплатно · Видео</div>
+    </div>
+
+    <div class="spread-card" onclick="openSpread('relationship')">
+      <div class="spread-icon">🌹</div>
+      <div class="spread-name">Глубокий расклад отношений</div>
+      <div class="spread-desc">5 карт · Полный анализ связи</div>
+      <div class="spread-price"><span class="vote-icon">▶</span> Бесплатно · Видео</div>
+    </div>
+
+    <div class="spread-card" onclick="openSpread('year')">
+      <div class="spread-icon">🎡</div>
+      <div class="spread-name">Расклад на год</div>
+      <div class="spread-desc">12 карт · По одной на каждый месяц</div>
+      <div class="spread-price"><span class="vote-icon">▶</span> Бесплатно · Видео</div>
+    </div>
+  </main>
+
+  <!-- History -->
+  <main class="screen" id="screen-history">
+    <p class="intro-text">Ваши прошлые расклады и карты дня</p>
+    <div id="historyList"></div>
+  </main>
+
+  <!-- Settings -->
+  <main class="screen" id="screen-settings">
+    <p class="intro-text">О приложении и поддержке</p>
+
+    <div class="settings-card">
+      <h3>О приложении</h3>
+      <p>«Карты Таро» — бесплатное развлекательное приложение для ежедневных предсказаний по Старшим Арканам. Все толкования носят развлекательный характер. Приложение поддерживается за счёт коротких рекламных видео перед открытием раскладов.</p>
+    </div>
+
+    <div class="settings-link" onclick="showPolicy()">Политика конфиденциальности</div>
+    <div class="settings-link" onclick="showSupport()">Поддержка</div>
+    <div class="settings-link" onclick="showRules()">Правила использования</div>
+
+    <div class="settings-card" style="margin-top: 16px; text-align: center;">
+      <p style="font-size: 13px;">Версия 1.0.0<br>© 2026 Карты Таро</p>
+    </div>
+  </main>
+
+  <!-- Tab bar -->
+  <nav class="tab-bar">
+    <button class="tab active" onclick="switchTab('home', this)">
+      <span class="tab-icon">🌙</span>
+      <span class="tab-label">Карта дня</span>
+    </button>
+    <button class="tab" onclick="switchTab('spreads', this)">
+      <span class="tab-icon">✦</span>
+      <span class="tab-label">Расклады</span>
+    </button>
+    <button class="tab" onclick="switchTab('history', this)">
+      <span class="tab-icon">📜</span>
+      <span class="tab-label">История</span>
+    </button>
+    <button class="tab" onclick="switchTab('settings', this)">
+      <span class="tab-icon">⚙</span>
+      <span class="tab-label">Ещё</span>
+    </button>
+  </nav>
+
+</div>
+
+<!-- Ad gate -->
+<div class="modal" id="modalPaywall">
+  <div class="modal-content">
+    <div class="modal-handle"></div>
+    <button class="modal-close" onclick="closeModal('modalPaywall')">×</button>
+    <div class="paywall-icon" id="paywallIcon">✦</div>
+    <h2 id="paywallTitle">—</h2>
+    <p class="modal-subtitle" id="paywallDesc">—</p>
+    <div class="ad-notice">
+      <div class="ad-notice-icon">▶</div>
+      <div class="ad-notice-text">
+        <strong>Бесплатный доступ</strong>
+        <span>Посмотрите короткое видео, чтобы открыть расклад</span>
+      </div>
+    </div>
+    <button class="btn-primary" id="paywallBtn" onclick="payAndReveal()">Смотреть и открыть</button>
+    <button class="btn-secondary" onclick="closeModal('modalPaywall')">Не сейчас</button>
+  </div>
+</div>
+
+<!-- Spread reveal -->
+<div class="modal" id="modalReveal">
+  <div class="modal-content">
+    <div class="modal-handle"></div>
+    <button class="modal-close" onclick="closeModal('modalReveal')">×</button>
+    <h2 id="revealTitle">Ваш расклад</h2>
+    <p class="modal-subtitle">Карты говорят с вами…</p>
+    <div class="spread-cards-row" id="spreadCardsRow"></div>
+    <div id="spreadResultText"></div>
+    <button class="btn-primary" onclick="closeModal('modalReveal')" style="margin-top: 22px;">Закрыть</button>
+  </div>
+</div>
+
+<!-- Generic info modal -->
+<div class="modal" id="modalInfo">
+  <div class="modal-content">
+    <div class="modal-handle"></div>
+    <button class="modal-close" onclick="closeModal('modalInfo')">×</button>
+    <h2 id="infoTitle">—</h2>
+    <div id="infoBody" style="color: var(--ivory-dim); line-height: 1.7; font-size: 15px;"></div>
+    <button class="btn-secondary" onclick="closeModal('modalInfo')" style="margin-top: 20px;">Закрыть</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+'use strict';
+
+// ============================================================
+// CONFIGURATION — рекламная модель
+// ============================================================
+const CONFIG = {
+  // Включать ли показ рекламы перед раскладом.
+  // В демо-режиме (вне VK) реклама имитируется паузой 2 сек.
+  USE_ADS: true
+};
+
+// ============================================================
+// CARD DATA — все 22 Старших Аркана
+// ============================================================
+// Изображения карт — оригинальная колода Райдера-Уэйта-Смит (общественное достояние)
+// CDN: jsDelivr (работает быстро по всему миру, включая Россию)
+// Если перенесёте картинки в свой репозиторий (см. README "Шаг 8")
+// — замените URL ниже на 'cards/' + String(id).padStart(2,'0') + '.jpg'
+const cardImg = (id) => `https://cdn.jsdelivr.net/npm/tarot-card-img@0.1.0/major/${id}m.jpg`;
+
+const CARDS = [
+  { id: 0,  roman: '0',     name: 'Дурак',          symbol: '🃏', image: cardImg(0),  short: 'Начало пути, новые возможности',     full: 'Сегодня — день для смелых решений. Не бойтесь сделать первый шаг: Вселенная поддержит вас. Откройтесь новому опыту с лёгкостью и доверием.' },
+  { id: 1,  roman: 'I',     name: 'Маг',            symbol: '✨', image: cardImg(1),  short: 'Сила воли, мастерство, реализация',  full: 'У вас есть всё необходимое для достижения цели. Сегодня — день действия. Используйте свои таланты, и желаемое станет реальностью.' },
+  { id: 2,  roman: 'II',    name: 'Жрица',          symbol: '🌙', image: cardImg(2),  short: 'Интуиция, тайны, мудрость',          full: 'Прислушайтесь к внутреннему голосу. Ответы, которые вы ищете, уже внутри вас. Не торопитесь — дайте интуиции вести.' },
+  { id: 3,  roman: 'III',   name: 'Императрица',    symbol: '🌹', image: cardImg(3),  short: 'Изобилие, плодородие, забота',        full: 'Время позаботиться о себе и близких. Ваши проекты входят в фазу роста. Доверьтесь природному ходу вещей.' },
+  { id: 4,  roman: 'IV',    name: 'Император',      symbol: '👑', image: cardImg(4),  short: 'Власть, структура, стабильность',     full: 'День для стратегических решений. Возьмите ответственность за свою жизнь. Порядок и дисциплина приведут к большему, чем хаотичные порывы.' },
+  { id: 5,  roman: 'V',     name: 'Иерофант',       symbol: '📜', image: cardImg(5),  short: 'Традиция, мудрость, наставник',       full: 'Сегодня может появиться важный совет от опытного человека. Прислушайтесь — это знак. Традиции и проверенные пути сейчас важнее экспериментов.' },
+  { id: 6,  roman: 'VI',    name: 'Влюблённые',     symbol: '💞', image: cardImg(6),  short: 'Любовь, выбор, гармония',             full: 'Сегодня — день важного выбора, особенно в отношениях. Слушайте сердце, но не отключайте разум. Гармония внутри породит гармонию снаружи.' },
+  { id: 7,  roman: 'VII',   name: 'Колесница',      symbol: '⚔️', image: cardImg(7),  short: 'Победа, движение, контроль',          full: 'Вы у руля своей судьбы. Решительность и сосредоточенность приведут к победе. Не сворачивайте с курса.' },
+  { id: 8,  roman: 'VIII',  name: 'Сила',           symbol: '🦁', image: cardImg(8),  short: 'Внутренняя сила, терпение, мужество', full: 'Истинная сила — в спокойствии и мягкости. Сегодня вы способны укротить любые трудности добротой и уверенностью.' },
+  { id: 9,  roman: 'IX',    name: 'Отшельник',      symbol: '🕯️', image: cardImg(9),  short: 'Уединение, поиск, мудрость',          full: 'День для размышлений. Уединитесь, помедитируйте, послушайте тишину. Ответы придут изнутри, а не снаружи.' },
+  { id: 10, roman: 'X',     name: 'Колесо Фортуны', symbol: '🎡', image: cardImg(10), short: 'Перемены, удача, цикличность',        full: 'Колесо повернулось в вашу сторону. Будьте готовы к неожиданным поворотам — большинство из них работают вам на пользу.' },
+  { id: 11, roman: 'XI',    name: 'Справедливость', symbol: '⚖️', image: cardImg(11), short: 'Истина, баланс, причинность',         full: 'Каждое действие возвращается. Сегодня — день честности с собой и другими. То, что вы посеяли, начинает приносить плоды.' },
+  { id: 12, roman: 'XII',   name: 'Повешенный',     symbol: '🌀', image: cardImg(12), short: 'Пауза, новый взгляд, жертва',         full: 'Если что-то застопорилось — это не препятствие, а приглашение взглянуть иначе. Смените угол зрения, и решение проявится.' },
+  { id: 13, roman: 'XIII',  name: 'Преображение',   symbol: '🦋', image: cardImg(13), short: 'Перемены, обновление, конец цикла',   full: 'Старое уходит, чтобы дать место новому. Не цепляйтесь за то, что отжило. Перемены откроют двери, о которых вы не подозревали.' },
+  { id: 14, roman: 'XIV',   name: 'Умеренность',    symbol: '🍃', image: cardImg(14), short: 'Баланс, гармония, исцеление',          full: 'День умиротворения. Сочетайте противоположности — работу и отдых, разум и чувства. Спокойствие принесёт ясность.' },
+  { id: 15, roman: 'XV',    name: 'Искушение',      symbol: '🔥', image: cardImg(15), short: 'Соблазн, страсть, освобождение',       full: 'Будьте честны с собой о своих привязанностях. То, что кажется цепью, — на самом деле выбор. Свобода ближе, чем вы думаете.' },
+  { id: 16, roman: 'XVI',   name: 'Башня',          symbol: '⚡', image: cardImg(16), short: 'Освобождение от иллюзий, прозрение',  full: 'Если что-то рушится — это место для нового, более крепкого фундамента. Не бойтесь правды: она освобождает.' },
+  { id: 17, roman: 'XVII',  name: 'Звезда',         symbol: '⭐', image: cardImg(17), short: 'Надежда, вдохновение, обновление',    full: 'Время надежды и исцеления. Загадайте желание — Вселенная слышит вас. Доверяйте своему пути, даже если он кажется неясным.' },
+  { id: 18, roman: 'XVIII', name: 'Луна',           symbol: '🌕', image: cardImg(18), short: 'Тайна, иллюзии, подсознание',          full: 'Не всё то, чем кажется. Сегодня будьте внимательны к нюансам. Сны и интуитивные ощущения принесут важные ответы.' },
+  { id: 19, roman: 'XIX',   name: 'Солнце',         symbol: '☀️', image: cardImg(19), short: 'Радость, успех, ясность',              full: 'День света и оптимизма. Всё складывается наилучшим образом. Радуйтесь моменту — вы заслужили это.' },
+  { id: 20, roman: 'XX',    name: 'Суд',            symbol: '🎺', image: cardImg(20), short: 'Возрождение, призвание, итоги',        full: 'Время подвести итоги и услышать своё призвание. То, что казалось завершённым, получает новую жизнь. Доверьтесь зову.' },
+  { id: 21, roman: 'XXI',   name: 'Мир',            symbol: '🌍', image: cardImg(21), short: 'Завершение, целостность, успех',       full: 'Цикл завершается на высокой ноте. То, над чем вы работали, приносит плоды. Гордитесь собой — вы прошли долгий путь.' }
+];
+
+const SPREADS = {
+  love:         { title: 'Расклад на любовь',           icon: '💞', positions: ['Он/Она', 'Вы', 'Будущее'],                                                desc: 'Три карты раскроют, что чувствует партнёр, что чувствуете вы, и куда движутся ваши отношения.' },
+  career:       { title: 'Расклад на карьеру',          icon: '⚔️', positions: ['Сейчас', 'Препятствие', 'Решение'],                                       desc: 'Три карты покажут вашу текущую ситуацию, главное препятствие и путь к успеху.' },
+  past:         { title: 'Прошлое — Настоящее — Будущее', icon: '🕯️', positions: ['Прошлое', 'Настоящее', 'Будущее'],                                       desc: 'Классический расклад, который раскроет течение вашей судьбы.' },
+  relationship: { title: 'Глубокий расклад отношений',  icon: '🌹', positions: ['Вы', 'Партнёр', 'Связь', 'Препятствие', 'Итог'],                          desc: 'Пять карт раскроют все грани ваших отношений: чувства каждого, природу связи, главную преграду и итог.' },
+  year:         { title: 'Расклад на год',              icon: '🎡', positions: ['Янв','Фев','Мар','Апр','Май','Июн','Июл','Авг','Сен','Окт','Ноя','Дек'], desc: 'Двенадцать карт — по одной на каждый месяц предстоящего года.' }
+};
+
+// ============================================================
+// VK BRIDGE — обёртка с graceful fallback (для тестирования вне VK)
+// ============================================================
+const Bridge = {
+  available: false,
+  user: null,
+
+  async init() {
+    if (typeof vkBridge === 'undefined') {
+      console.warn('VK Bridge не найден — работает демо-режим');
+      return false;
+    }
+    try {
+      await vkBridge.send('VKWebAppInit');
+      this.available = true;
+      return true;
+    } catch (e) {
+      console.warn('VK Bridge init failed', e);
+      return false;
+    }
+  },
+
+  async getUser() {
+    if (!this.available) return null;
+    try {
+      this.user = await vkBridge.send('VKWebAppGetUserInfo');
+      return this.user;
+    } catch (e) { return null; }
+  },
+
+  async storageGet(key) {
+    if (!this.available) {
+      const v = sessionStorage.getItem('taro_' + key);
+      return v;
+    }
+    try {
+      const r = await vkBridge.send('VKWebAppStorageGet', { keys: [key] });
+      return r.keys[0]?.value || '';
+    } catch (e) { return ''; }
+  },
+
+  async storageSet(key, value) {
+    if (!this.available) {
+      try { sessionStorage.setItem('taro_' + key, value); } catch(e) {}
+      return;
+    }
+    try {
+      await vkBridge.send('VKWebAppStorageSet', { key, value });
+    } catch (e) { console.warn('storageSet failed', e); }
+  },
+
+  async showAd(format = 'reward') {
+    if (!this.available) {
+      // Демо-режим: имитируем 2-секундное "видео" и возвращаем успех
+      await new Promise(r => setTimeout(r, 2000));
+      return { success: true, demo: true };
+    }
+    try {
+      const r = await vkBridge.send('VKWebAppShowNativeAds', { ad_format: format });
+      return { success: r.result === true, data: r };
+    } catch (e) {
+      // Реклама недоступна — пропускаем (разрешаем доступ всё равно)
+      console.warn('Ad show failed', e);
+      return { success: false, error: e, fallback: true };
+    }
+  },
+
+  async checkAdReady(format = 'reward') {
+    if (!this.available) return true;
+    try {
+      const r = await vkBridge.send('VKWebAppCheckNativeAds', { ad_format: format });
+      return r.result === true;
+    } catch (e) {
+      return false;
+    }
+  },
+
+  async getConfig() {
+    if (!this.available) return { scheme: 'space_gray' };
+    try { return await vkBridge.send('VKWebAppGetConfig'); }
+    catch(e) { return { scheme: 'space_gray' }; }
+  }
+};
+
+// ============================================================
+// STATE
+// ============================================================
+const state = {
+  user: null,
+  todayCard: null,
+  todayDate: null,
+  history: [],
+  currentSpread: null
+};
+
+// ============================================================
+// HELPERS
+// ============================================================
+function todayKey() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+
+function pickRandomCard() { return CARDS[Math.floor(Math.random() * CARDS.length)]; }
+
+function pickUniqueCards(n) {
+  const pool = [...CARDS];
+  const out = [];
+  for (let i = 0; i < n && pool.length > 0; i++) {
+    const idx = Math.floor(Math.random() * pool.length);
+    out.push(pool.splice(idx, 1)[0]);
+  }
+  return out;
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2500);
+}
+
+// ============================================================
+// CONSENT (первый запуск)
+// ============================================================
+async function checkConsent() {
+  const accepted = await Bridge.storageGet('consent');
+  if (accepted === '1') return true;
+  document.getElementById('consentScreen').classList.add('show');
+  return false;
+}
+
+async function acceptConsent() {
+  const age = document.getElementById('agreeAge').checked;
+  const policy = document.getElementById('agreePolicy').checked;
+  if (!age || !policy) {
+    showToast('Подтвердите оба пункта, чтобы продолжить');
+    return;
+  }
+  await Bridge.storageSet('consent', '1');
+  document.getElementById('consentScreen').classList.remove('show');
+  document.getElementById('mainApp').style.display = '';
+}
+
+// ============================================================
+// DAILY CARD
+// ============================================================
+async function loadDailyCard() {
+  const stored = await Bridge.storageGet('dailyCard');
+  if (!stored) return;
+  try {
+    const data = JSON.parse(stored);
+    if (data.date === todayKey()) {
+      const card = CARDS.find(c => c.id === data.cardId);
+      if (card) {
+        state.todayCard = card;
+        state.todayDate = data.date;
+        showCardOnFront(card);
+        document.getElementById('dailyCardFrame').classList.add('flipped');
+        document.getElementById('drawHint').style.display = 'none';
+        document.getElementById('cardMeaning').classList.add('show');
+        document.getElementById('meaningShort').textContent = card.short;
+        document.getElementById('meaningFull').textContent = card.full;
+      }
+    }
+  } catch (e) { /* corrupt data, ignore */ }
+}
+
+function showCardOnFront(card) {
+  document.getElementById('cardRoman').textContent = card.roman;
+  document.getElementById('cardName').textContent = card.name;
+  const slot = document.getElementById('cardSymbol');
+  slot.innerHTML = '';
+  const img = new Image();
+  img.alt = card.name;
+  img.onerror = () => {
+    slot.innerHTML = `<span class="fallback">${card.symbol}</span>`;
+  };
+  img.src = card.image;
+  slot.appendChild(img);
+}
+
+async function drawDailyCard() {
+  if (state.todayCard) return;
+
+  const card = pickRandomCard();
+  state.todayCard = card;
+  state.todayDate = todayKey();
+
+  showCardOnFront(card);
+  document.getElementById('dailyCardFrame').classList.add('flipped');
+  document.getElementById('drawHint').style.display = 'none';
+
+  setTimeout(() => {
+    document.getElementById('meaningShort').textContent = card.short;
+    document.getElementById('meaningFull').textContent = card.full;
+    document.getElementById('cardMeaning').classList.add('show');
+  }, 800);
+
+  await Bridge.storageSet('dailyCard', JSON.stringify({ cardId: card.id, date: todayKey() }));
+  await addToHistory({ type: 'daily', cardId: card.id, date: todayKey() });
+}
+
+// ============================================================
+// SPREADS
+// ============================================================
+function openSpread(key) {
+  const spread = SPREADS[key];
+  state.currentSpread = { key, ...spread };
+
+  document.getElementById('paywallIcon').textContent = spread.icon;
+  document.getElementById('paywallTitle').textContent = spread.title;
+  document.getElementById('paywallDesc').textContent = spread.desc;
+
+  openModal('modalPaywall');
+}
+
+async function payAndReveal() {
+  const s = state.currentSpread;
+  if (!s) return;
+
+  const btn = document.getElementById('paywallBtn');
+  btn.disabled = true;
+  btn.textContent = 'Загрузка рекламы…';
+
+  let canReveal = false;
+
+  if (CONFIG.USE_ADS) {
+    const result = await Bridge.showAd('reward');
+    canReveal = result.success || result.fallback; // если реклама не загрузилась — всё равно открываем
+    if (result.demo) {
+      // в демо-режиме без шума
+    }
+  } else {
+    canReveal = true;
+  }
+
+  btn.disabled = false;
+  btn.textContent = 'Смотреть и открыть';
+
+  if (!canReveal) {
+    showToast('Реклама недоступна. Попробуйте позже.');
+    return;
+  }
+
+  closeModal('modalPaywall');
+  setTimeout(revealSpread, 300);
+}
+
+async function revealSpread() {
+  const s = state.currentSpread;
+  document.getElementById('revealTitle').textContent = s.title;
+
+  const row = document.getElementById('spreadCardsRow');
+  row.innerHTML = '';
+
+  const cards = pickUniqueCards(s.positions.length);
+  const drawn = s.positions.map((pos, i) => ({ pos, card: cards[i] }));
+
+  drawn.forEach(d => {
+    const el = document.createElement('div');
+    el.className = 'spread-card-mini';
+    el.innerHTML = `
+      <div class="mini-position">${d.pos}</div>
+      <div class="mini-symbol">
+        <img src="${d.card.image}" alt="${d.card.name}" onerror="this.outerHTML='<span class=\\'fallback\\'>${d.card.symbol}</span>'">
+      </div>
+      <div class="mini-name">${d.card.name}</div>
+    `;
+    row.appendChild(el);
+  });
+
+  const result = document.getElementById('spreadResultText');
+  result.innerHTML = '<div class="spread-result-text">' +
+    drawn.map(d => `
+      <div class="spread-result-block">
+        <h4>${d.pos.toUpperCase()} · ${d.card.name}</h4>
+        <div>${d.card.full}</div>
+      </div>
+    `).join('') + '</div>';
+
+  await addToHistory({
+    type: 'spread',
+    spreadKey: s.key,
+    cards: drawn.map(d => ({ pos: d.pos, cardId: d.card.id })),
+    date: todayKey()
+  });
+
+  openModal('modalReveal');
+}
+
+// ============================================================
+// HISTORY
+// ============================================================
+async function loadHistory() {
+  const stored = await Bridge.storageGet('history');
+  if (!stored) { state.history = []; return; }
+  try { state.history = JSON.parse(stored); }
+  catch(e) { state.history = []; }
+}
+
+async function addToHistory(entry) {
+  state.history.unshift(entry);
+  if (state.history.length > 50) state.history = state.history.slice(0, 50);
+  // VKWebAppStorageSet имеет лимит ~4096 байт на ключ — храним только последние 50
+  await Bridge.storageSet('history', JSON.stringify(state.history));
+}
+
+function renderHistory() {
+  const list = document.getElementById('historyList');
+  if (state.history.length === 0) {
+    list.innerHTML = `
+      <div class="history-empty">
+        <div class="symbol">✦</div>
+        <p>Здесь появятся ваши расклады.<br>Начните с карты дня.</p>
+      </div>`;
+    return;
+  }
+
+  list.innerHTML = state.history.map(h => {
+    if (h.type === 'daily') {
+      const card = CARDS.find(c => c.id === h.cardId);
+      if (!card) return '';
+      return `<div class="history-item">
+        <div class="history-mini"><img src="${card.image}" alt="${card.name}" onerror="this.outerHTML='${card.symbol}'"></div>
+        <div class="history-info">
+          <div class="name">${card.name}</div>
+          <div class="date">Карта дня · ${h.date}</div>
+        </div>
+      </div>`;
+    } else {
+      const spread = SPREADS[h.spreadKey];
+      const firstCard = h.cards[0] ? CARDS.find(c => c.id === h.cards[0].cardId) : null;
+      const symbols = h.cards.map(c => CARDS.find(cc => cc.id === c.cardId)?.symbol || '✦').slice(0, 5).join(' ');
+      const thumb = firstCard
+        ? `<img src="${firstCard.image}" alt="${firstCard.name}" onerror="this.outerHTML='${spread?.icon || '✦'}'">`
+        : (spread?.icon || '✦');
+      return `<div class="history-item">
+        <div class="history-mini">${thumb}</div>
+        <div class="history-info">
+          <div class="name">${spread?.title || 'Расклад'}</div>
+          <div class="date">${symbols} · ${h.date}</div>
+        </div>
+      </div>`;
+    }
+  }).join('');
+}
+
+// ============================================================
+// BANNER AD (опционально внизу экрана)
+// ============================================================
+async function showBannerAd() {
+  if (!CONFIG.USE_ADS || !Bridge.available) return;
+  try {
+    await vkBridge.send('VKWebAppShowBannerAd', {
+      banner_location: 'bottom',
+      banner_type: 'horizontal'
+    });
+  } catch (e) {
+    // баннер не загрузился — игнорируем
+  }
+}
+
+// ============================================================
+// INFO MODALS
+// ============================================================
+function showPolicy() {
+  document.getElementById('infoTitle').textContent = 'Политика конфиденциальности';
+  document.getElementById('infoBody').innerHTML = `
+    <p><strong>1. Какие данные мы используем</strong></p>
+    <p>Идентификатор пользователя VK (только для отображения вашего имени на приветственном экране) и встроенное хранилище VK для сохранения карты дня и истории раскладов. Никаких других персональных данных мы не собираем.</p>
+    <p style="margin-top:14px;"><strong>2. Передача третьим лицам</strong></p>
+    <p>Ваши данные не передаются третьим лицам. Все данные хранятся в безопасном хранилище VK.</p>
+    <p style="margin-top:14px;"><strong>3. Реклама</strong></p>
+    <p>Приложение бесплатное и поддерживается за счёт коротких рекламных видео перед открытием раскладов. Рекламу обслуживает сама платформа VK через VKWebAppShowNativeAds; никакой персональной информации рекламодателям мы не передаём.</p>
+    <p style="margin-top:14px;"><strong>4. Возраст</strong></p>
+    <p>Приложение предназначено для пользователей старше 18 лет.</p>
+    <p style="margin-top:14px;"><strong>5. Контакты</strong></p>
+    <p>По всем вопросам пишите на странице сообщества или через раздел «Поддержка».</p>
+  `;
+  openModal('modalInfo');
+}
+
+function showSupport() {
+  document.getElementById('infoTitle').textContent = 'Поддержка';
+  document.getElementById('infoBody').innerHTML = `
+    <p>Если возникли вопросы или проблемы с приложением, мы готовы помочь.</p>
+    <p style="margin-top:14px;"><strong>Способы связи:</strong></p>
+    <p>• Сообщения сообщества VK<br>• Email: support@example.com</p>
+    <p style="margin-top:14px;">Среднее время ответа — до 24 часов.</p>
+    <p style="margin-top:14px;"><em>Замените контакты на свои перед отправкой на модерацию (см. README).</em></p>
+  `;
+  openModal('modalInfo');
+}
+
+function showRules() {
+  document.getElementById('infoTitle').textContent = 'Правила использования';
+  document.getElementById('infoBody').innerHTML = `
+    <p>Приложение предназначено для пользователей старше 18 лет.</p>
+    <p style="margin-top:14px;">Все предсказания носят <strong>исключительно развлекательный характер</strong> и не являются профессиональной консультацией психолога, медицинского работника или финансового советника.</p>
+    <p style="margin-top:14px;">Не принимайте важных жизненных решений, основываясь только на интерпретации карт. Если вам нужна реальная помощь — обратитесь к специалисту.</p>
+    <p style="margin-top:14px;">Приложение полностью бесплатно. Для поддержки проекта мы показываем короткое видео перед открытием расклада.</p>
+  `;
+  openModal('modalInfo');
+}
+
+// ============================================================
+// NAVIGATION
+// ============================================================
+function switchTab(name, btn) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById('screen-' + name).classList.add('active');
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  btn.classList.add('active');
+  if (name === 'history') renderHistory();
+}
+
+function openModal(id)  { document.getElementById(id).classList.add('show'); }
+function closeModal(id) { document.getElementById(id).classList.remove('show'); }
+
+// ============================================================
+// VK Bridge events: остановка звука/анимаций при сворачивании
+// ============================================================
+if (typeof vkBridge !== 'undefined') {
+  vkBridge.subscribe(e => {
+    if (e.detail?.type === 'VKWebAppViewHide') {
+      // Здесь следует остановить любые звуки/видео
+    }
+    if (e.detail?.type === 'VKWebAppUpdateConfig') {
+      // Тема сменилась — можно обновить переменные CSS
+    }
+  });
+}
+
+// ============================================================
+// INIT
+// ============================================================
+async function init() {
+  await Bridge.init();
+  await Bridge.getConfig();
+
+  // Прелоад изображений карт в фоне для плавной анимации
+  CARDS.forEach(c => { const img = new Image(); img.src = c.image; });
+
+  const consentOk = await checkConsent();
+  if (consentOk) {
+    document.getElementById('mainApp').style.display = '';
+  }
+
+  const user = await Bridge.getUser();
+  if (user?.first_name) {
+    document.getElementById('greeting').textContent = `Здравствуйте, ${user.first_name}`;
+  }
+
+  await loadHistory();
+  await loadDailyCard();
+
+  // Скрываем splash
+  setTimeout(() => {
+    document.getElementById('splash').classList.add('hide');
+    setTimeout(() => document.getElementById('splash').remove(), 600);
+  }, 800);
+}
+
+document.addEventListener('DOMContentLoaded', init);
+</script>
+
+</body>
+</html>
