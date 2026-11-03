@@ -1,4 +1,7 @@
 import { test, expect } from '@playwright/test';
+import { pathToFileURL } from 'node:url';
+import { resolve } from 'node:path';
+
 
 test('visual review works without VK, API or browser storage', async ({ page }, testInfo) => {
   const errors = [];
@@ -53,4 +56,21 @@ test('blocked or missing VK is never presented as real sign-in', async ({ page }
   await expect(page.locator('footer')).toContainText('только просмотр дизайна');
   const requests = await page.evaluate(() => performance.getEntriesByType('resource').map(r => r.name));
   expect(requests.every(uri => !uri.includes('/api/v1/') && !uri.includes('unpkg.com'))).toBe(true);
+});
+
+test('offline single-file HTML renders in Android Chromium without any network requests', async ({ page }) => {
+  const url = pathToFileURL(resolve(process.cwd(), '../preview/dist/CartTaro_visual_demo.html')).href;
+  const errors = [];
+  const external = [];
+  page.on('pageerror', e => errors.push(e.message));
+  page.on('request', r => { if (r.url().startsWith('https:') || r.url().startsWith('http:')) external.push(r.url()); });
+  await page.goto(url, { waitUntil: 'load' });
+  await expect(page).toHaveTitle(/автономное демо/);
+  await expect(page.locator('#collection .arcana')).toHaveCount(22);
+  await page.locator('#claimButton').click();
+  await expect(page.locator('#crystals')).toHaveText('35');
+  await page.locator('#drawButton').click();
+  await expect(page.locator('#unlocked')).toHaveText('4/22');
+  expect(errors).toEqual([]);
+  expect(external).toEqual([]);
 });
