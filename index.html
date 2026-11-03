@@ -1062,6 +1062,7 @@
   /* Helpers */
   .text-link { color: var(--gold); cursor: pointer; text-decoration: underline; }
 </style>
+<link rel="stylesheet" href="./engagement.css">
 </head>
 <body>
 
@@ -1144,6 +1145,20 @@
         <div class="come-tomorrow">Следующая карта дня — <strong>завтра</strong></div>
         <button class="btn-share" onclick="shareDailyCard()">✦ Поделиться картой дня</button>
       </div>
+    </section>
+
+    <!-- Daily rewards: progression only, not a payment balance -->
+    <section class="reward-panel" id="engagementPanel" aria-labelledby="rewardTitle">
+      <h2 id="rewardTitle">✦ Ваши ежедневные награды</h2>
+      <p class="reward-subtitle">Возвращайтесь каждый день и собирайте кристаллы.</p>
+      <div class="reward-stats">
+        <div class="reward-stat"><strong id="rewardBalance">0</strong><span>Кристаллы</span></div>
+        <div class="reward-stat"><strong id="rewardStreak">0</strong><span>Дней подряд</span></div>
+      </div>
+      <div class="reward-week" id="rewardWeek" aria-label="Награды на семь дней"></div>
+      <button class="reward-claim" id="rewardClaimButton" onclick="TarotEngagement.claim()" disabled>Загрузка наград…</button>
+      <p class="reward-message" id="rewardMessage" aria-live="polite"></p>
+      <small class="reward-hint">Кристаллы — игровые очки прогресса. Они не являются деньгами и пока не используются для покупок.</small>
     </section>
 
     <div class="info-promo">
@@ -1285,6 +1300,7 @@
 
 <div class="toast" id="toast"></div>
 
+<script src="./engagement.js"></script>
 <script>
 'use strict';
 
@@ -1497,6 +1513,7 @@ async function acceptConsent() {
   await Bridge.storageSet('consent', '1');
   document.getElementById('consentScreen').classList.remove('show');
   document.getElementById('mainApp').style.display = '';
+  if (window.TarotEngagement) await window.TarotEngagement.init(Bridge);
 }
 
 // ============================================================
@@ -1816,6 +1833,7 @@ async function init() {
   const consentOk = await checkConsent();
   if (consentOk) {
     document.getElementById('mainApp').style.display = '';
+    if (window.TarotEngagement) await window.TarotEngagement.init(Bridge);
   }
 
   const user = await Bridge.getUser();
