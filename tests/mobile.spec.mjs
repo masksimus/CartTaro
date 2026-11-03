@@ -6,6 +6,12 @@ async function capture(page, testInfo, label) {
   await testInfo.attach(label, { path, contentType: 'image/png' });
 }
 
+async function captureViewport(page, testInfo, label) {
+  const path = testInfo.outputPath(label + '.png');
+  await page.screenshot({ path, fullPage: false, animations: 'disabled' });
+  await testInfo.attach(label, { path, contentType: 'image/png' });
+}
+
 async function launch(page) {
   // This is an independent browser smoke test, not a genuine VK WebView session.
   // Force the app's documented non-VK fallback so no fake VK successes are asserted.
@@ -29,6 +35,15 @@ test('first launch, mobile visuals, daily card, rewards, spreads and navigation'
   await expect(page.locator('#screen-home')).toBeVisible();
   await expect(page.locator('#rewardClaimButton')).toBeEnabled();
   await capture(page, testInfo, '02-home');
+
+  // Full-page screenshots can obscure fixed-navigation overlaps on mobile.
+  // Explicitly scroll and verify the reward CTA is actually reachable.
+  await page.locator('#rewardClaimButton').scrollIntoViewIfNeeded();
+  await expect(page.locator('#rewardClaimButton')).toBeInViewport({ ratio: 0.9 });
+  await captureViewport(page, testInfo, '02b-reward-viewport');
+  await page.locator('.info-promo').scrollIntoViewIfNeeded();
+  await expect(page.locator('.info-promo')).toBeInViewport({ ratio: 0.2 });
+  await page.locator('#rewardClaimButton').scrollIntoViewIfNeeded();
 
   const viewport = await page.evaluate(() => ({
     documentWidth: document.documentElement.scrollWidth,
