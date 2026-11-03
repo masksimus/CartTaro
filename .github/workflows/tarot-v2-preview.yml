@@ -24,7 +24,15 @@ jobs:
         with:
           node-version: '24'
       - name: Check demo script syntax
-        run: node --check preview/demo.js
+        run: |
+          node --check preview/demo.js
+          node --check preview/build-standalone.mjs
+      - name: Build standalone offline HTML and ZIP
+        run: |
+          node preview/build-standalone.mjs
+          test -s preview/dist/CartTaro_visual_demo.html
+          cd preview/dist
+          zip -9 CartTaro_visual_demo.zip CartTaro_visual_demo.html
       - name: Install browser tooling
         working-directory: tests
         run: |
@@ -52,3 +60,5 @@ jobs:
           path: |
             tests/report/
             tests/test-results/
+            preview/dist/CartTaro_visual_demo.html
+            preview/dist/CartTaro_visual_demo.zip
