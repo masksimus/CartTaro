@@ -1064,6 +1064,7 @@
 </style>
 <link rel="stylesheet" href="./engagement.css">
 <link rel="stylesheet" href="./visual-v2.css">
+<link rel="stylesheet" href="./progression.css">
 </head>
 <body>
 
@@ -1232,6 +1233,42 @@
     </div>
   </main>
 
+  <!-- Collectable arcana, daily quests and achievements -->
+  <main class="screen" id="screen-progress">
+    <div class="arcana-overview">
+      <h2>✦ Путь Арканов</h2>
+      <p>Открывайте карты в ежедневных предсказаниях и раскладах. Все найденные арканы сохраняются в личной коллекции.</p>
+      <div><strong id="arcanaCount">0 / 22</strong> открытых карт</div>
+      <div class="arcana-progress" role="progressbar" aria-label="Заполнение коллекции" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><span id="arcanaProgressBar"></span></div>
+      <p class="arcana-caption">Откройте все 22 Старших аркана.</p>
+    </div>
+
+    <section class="arcana-section" aria-labelledby="arcanaMissionsTitle">
+      <div class="arcana-section-heading">
+        <h2 class="arcana-section-title" id="arcanaMissionsTitle">Задания дня</h2>
+        <span class="arcana-counter" id="arcanaMissionsDone">0 / 3</span>
+      </div>
+      <div id="arcanaMissions"></div>
+      <p class="arcana-caption">Задания обновляются каждый день. Выполнение отмечается автоматически.</p>
+    </section>
+
+    <section class="arcana-section" aria-labelledby="arcanaAchievementsTitle">
+      <div class="arcana-section-heading">
+        <h2 class="arcana-section-title" id="arcanaAchievementsTitle">Достижения</h2>
+      </div>
+      <div class="arcana-achievements" id="arcanaAchievements"></div>
+    </section>
+
+    <section class="arcana-section" aria-labelledby="arcanaCollectionTitle">
+      <div class="arcana-section-heading">
+        <h2 class="arcana-section-title" id="arcanaCollectionTitle">Коллекция карт</h2>
+        <span class="arcana-counter">22 аркана</span>
+      </div>
+      <div class="arcana-collection" id="arcanaCollection" role="list" aria-label="Коллекция Старших арканов"></div>
+    </section>
+    <p id="arcanaStatus" role="status" aria-live="polite"></p>
+  </main>
+
   <!-- Tab bar -->
   <nav class="tab-bar">
     <button class="tab active" onclick="switchTab('home', this)">
@@ -1249,6 +1286,10 @@
     <button class="tab" onclick="switchTab('settings', this)">
       <span class="tab-icon">⚙</span>
       <span class="tab-label">Ещё</span>
+    </button>
+    <button class="tab" onclick="switchTab('progress', this)" aria-label="Коллекция, задания и достижения">
+      <span class="tab-icon">◈</span>
+      <span class="tab-label">Арканы</span>
     </button>
   </nav>
 
@@ -1302,6 +1343,7 @@
 <div class="toast" id="toast"></div>
 
 <script src="./engagement.js"></script>
+<script src="./progression.js"></script>
 <script>
 'use strict';
 
@@ -1680,6 +1722,10 @@ async function addToHistory(entry) {
   if (state.history.length > 50) state.history = state.history.slice(0, 50);
   // VKWebAppStorageSet имеет лимит ~4096 байт на ключ — храним только последние 50
   await Bridge.storageSet('history', JSON.stringify(state.history));
+  // Optional progress tracking is isolated: a failure cannot affect the original reading.
+  if (window.TarotProgression) {
+    window.TarotProgression.record(entry).catch(e => console.warn('Progression record failed', e));
+  }
 }
 
 function renderHistory() {
@@ -1802,6 +1848,9 @@ function switchTab(name, btn) {
   document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
   btn.classList.add('active');
   if (name === 'history') renderHistory();
+  if (name === 'progress' && window.TarotProgression) {
+    window.TarotProgression.refresh(state.history).catch(e => console.warn('Progression refresh failed', e));
+  }
 }
 
 function openModal(id)  { document.getElementById(id).classList.add('show'); }
@@ -1843,6 +1892,10 @@ async function init() {
   }
 
   await loadHistory();
+  if (window.TarotProgression) {
+    try { await window.TarotProgression.init({ bridge: Bridge, cards: CARDS, history: state.history }); }
+    catch (e) { console.warn('Progression init failed', e); }
+  }
   await loadDailyCard();
 
   // Скрываем splash
