@@ -1,0 +1,127 @@
+name: Tarot V2 staging preflight
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - feature/tarot-v2-staging
+    paths:
+      - 'deploy/**'
+      - '.dockerignore'
+      - 'server/**'
+      - 'pilot/**'
+      - 'tests/pilot.spec.mjs'
+      - '.github/workflows/tarot-v2-staging.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  security:
+    name: Security, backup, Docker and Caddy validation
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Check all new module syntax
+        run: |
+          node --check server/src/secret.mjs
+          node --check server/src/backup.mjs
+          node --check deploy/preflight.mjs
+          node --check server/src/main.mjs
+          node --check server/src/http.mjs
+          node --check server/test/staging.test.mjs
+      - name: Run regression + staging security unit tests
+        run: node --test --test-reporter=spec server/test/*.test.mjs
+      - name: Build harmless staging fixture on CI runner
+        run: |
+          printf 'TARO_STAGING_FIXTURE_KEY_NOT_REAL_VK_SECRET' > "${RUNNER_TEMP}/taro-secret"
+          sudo chown 1000:1000 "${RUNNER_TEMP}/taro-secret"
+          sudo chmod 600 "${RUNNER_TEMP}/taro-secret"
+          printf 'PILOT_DOMAIN=pilot.example.net\nVK_SECRET_FILE=%s\n' "${RUNNER_TEMP}/taro-secret" > deploy/.env
+          set -a
+          . ./deploy/.env
+          set +a
+          node deploy/preflight.mjs
+      - name: Validate Docker Compose configuration
+        run: docker compose --env-file deploy/.env -f deploy/compose.yaml config --quiet
+      - name: Validate Caddy TLS proxy configuration
+        run: |
+          docker run --rm -e PILOT_DOMAIN=pilot.example.net \
+            -v "${PWD}/deploy/Caddyfile:/etc/caddy/Caddyfile:ro" \
+            caddy:2-alpine caddy adapt --config /etc/caddy/Caddyfile --validate
+      - name: Build non-root backend image
+        run: docker compose --env-file deploy/.env -f deploy/compose.yaml build backend
+      - name: Boot isolated backend and check container health
+        run: |
+          docker compose --env-file deploy/.env -f deploy/compose.yaml up -d backend
+          id="$(docker compose --env-file deploy/.env -f deploy/compose.yaml ps -q backend)"
+          test -n "$id"
+          for i in $(seq 1 30); do
+            state="$(docker inspect --format '{{.State.Health.Status}}' "$id")"
+            if [ "$state" = healthy ]; then
+              echo "STAGING BACKEND HEALTHY"
+              exit 0
+            fi
+            if [ "$state" = unhealthy ]; then
+              echo "STAGING BACKEND UNHEALTHY"
+              exit 1
+            fi
+            sleep 2
+          done
+          echo "STAGING BACKEND HEALTH TIMEOUT"
+          exit 1
+      - name: Shut down staging fixture without deleting SQLite volume
+        if: always()
+        run: docker compose --env-file deploy/.env -f deploy/compose.yaml down || true
+
+  browser:
+    name: Browser regression against signed local API
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Install browser test tooling
+        working-directory: tests
+        run: |
+          npm install --no-fund --no-audit --ignore-scripts
+          npx playwright install --with-deps chromium
+      - name: Start local API and isolated pilot page
+        env:
+          VK_PROTECTED_KEY: TARO_E2E_FIXTURE_ONLY_NEVER_PRODUCTION
+          VK_APP_ID: '54582199'
+          PORT: '8787'
+          HOST: '127.0.0.1'
+          ALLOWED_ORIGINS: 'http://127.0.0.1:8765'
+          DB_PATH: ${{ runner.temp }}/staging-e2e.sqlite
+        run: |
+          node server/src/main.mjs > /tmp/pilot-api.log 2>&1 &
+          python3 -m http.server 8765 --bind 127.0.0.1 > /tmp/pilot-static.log 2>&1 &
+          for i in $(seq 1 30); do
+            if curl -fsS http://127.0.0.1:8787/health >/dev/null &&
+               curl -fsS http://127.0.0.1:8765/pilot/index.html >/dev/null; then
+              exit 0
+            fi
+            sleep 1
+          done
+          echo "API/static fixture unavailable"
+          exit 1
+      - name: Run five pilot flows across three Android sizes
+        working-directory: tests
+        run: npx playwright test --config playwright.config.mjs pilot.spec.mjs
+      - name: Upload failure traces and test screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: tarot-v2-staging-qa
+          if-no-files-found: warn
+          retention-days: 7
+          path: |
+            tests/report/
+            tests/test-results/
