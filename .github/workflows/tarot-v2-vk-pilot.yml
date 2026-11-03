@@ -1,0 +1,74 @@
+name: Tarot V2 VK Pilot Integration QA
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - feature/tarot-v2-vk-pilot
+    paths:
+      - '.github/workflows/tarot-v2-vk-pilot.yml'
+      - 'pilot/**'
+      - 'tests/pilot.spec.mjs'
+      - 'tests/playwright.config.mjs'
+      - 'server/**'
+
+permissions:
+  contents: read
+
+jobs:
+  pilot-e2e:
+    name: Browser + real local HMAC API + SQLite
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+      - name: Set up Node 24
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Validate JavaScript syntax
+        run: |
+          node --check pilot/client.js
+          node --check tests/pilot.spec.mjs
+          node --check server/src/http.mjs
+          node --check server/src/store.mjs
+      - name: Install Chromium test dependencies
+        working-directory: tests
+        run: |
+          npm install --no-fund --no-audit --ignore-scripts
+          npx playwright install --with-deps chromium
+      - name: Start local test servers
+        env:
+          VK_PROTECTED_KEY: TARO_E2E_FIXTURE_ONLY_NEVER_PRODUCTION
+          VK_APP_ID: '54582199'
+          PORT: '8787'
+          HOST: '127.0.0.1'
+          ALLOWED_ORIGINS: 'http://127.0.0.1:8765'
+          DB_PATH: ${{ runner.temp }}/pilot.sqlite
+        run: |
+          node server/src/main.mjs > /tmp/tarot-pilot-api.log 2>&1 &
+          python3 -m http.server 8765 --bind 127.0.0.1 > /tmp/tarot-pilot-static.log 2>&1 &
+          for i in $(seq 1 35); do
+            if curl -fsS http://127.0.0.1:8787/health >/dev/null &&
+               curl -fsS http://127.0.0.1:8765/pilot/index.html >/dev/null; then
+              exit 0
+            fi
+            sleep 1
+          done
+          cat /tmp/tarot-pilot-api.log
+          cat /tmp/tarot-pilot-static.log
+          exit 1
+      - name: Browser-to-real-API mobile integration tests
+        working-directory: tests
+        run: npx playwright test --config playwright.config.mjs pilot.spec.mjs
+      - name: Preserve test screenshots and traces
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: tarot-v2-vk-pilot-qa
+          if-no-files-found: warn
+          retention-days: 7
+          path: |
+            tests/report/
+            tests/test-results/
