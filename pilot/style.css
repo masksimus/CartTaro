@@ -33,7 +33,7 @@ p { line-height:1.55; }
 button { min-height:51px; padding:12px 9px; background:linear-gradient(120deg,#f5daa4,#bc8a58); color:#211425;
  border:0; border-radius:13px; font-weight:800; font-size:12px; cursor:pointer; }
 button:focus-visible { outline:3px solid #fff; outline-offset:3px; }
-button:disabled { cursor:not-allowed; opacity:.5; }
+button:disabled { cursor:not-allowed; opacity:1; color:#dfd4e3; background:rgba(78,62,92,.73); border:1px solid rgba(227,197,158,.35); }
 .hint { font-size:12px; color:var(--muted); margin:13px 0 0; }
 .draw-result { min-height:1px; margin-top:12px; color:#fce8c7; text-align:center; font:18px Georgia,serif; }
 .draw-result:not(:empty) { background:rgba(233,194,143,.075); border:1px solid var(--line); border-radius:11px; padding:14px 6px; }
