@@ -6,11 +6,34 @@ import { verifyVkLaunch, AuthError } from './auth.mjs';
  * card ID, history or quest completion fields.
  */
 export function createApiServer({ store, secret, appId, allowedOrigins = [],
-                                  now = () => Date.now(), ttlSeconds = 900 } = {}) {
+                                  now = () => Date.now(), ttlSeconds = 900,
+                                  rateLimitPerMinute = 60 } = {}) {
   if (!store || !secret || !Number.isSafeInteger(Number(appId)) || Number(appId) <= 0) {
     throw new Error('API requires a store, VK protected key and app id');
   }
+  if (!Number.isSafeInteger(rateLimitPerMinute) || rateLimitPerMinute < 1 || rateLimitPerMinute > 1000) {
+    throw new Error('Invalid per-user request limit');
+  }
+  const counters = new Map();
   const origins = new Set(allowedOrigins);
+  function takeQuota(userId) {
+    const t = now();
+    const previous = counters.get(userId);
+    if (!previous || t - previous.start >= 60000 || t < previous.start) {
+      counters.set(userId, { start: t, count: 1 });
+    } else if (previous.count >= rateLimitPerMinute) {
+      return false;
+    } else {
+      previous.count++;
+    }
+    if (counters.size > 4096) {
+      for (const [id, bucket] of counters) {
+        if (t - bucket.start >= 60000) counters.delete(id);
+      }
+      while (counters.size > 4096) counters.delete(counters.keys().next().value);
+    }
+    return true;
+  }
   return createServer((req, res) => {
     const origin = req.headers.origin;
     res.setHeader('Content-Type', 'application/json; charset=utf-8');
@@ -69,6 +92,10 @@ export function createApiServer({ store, secret, appId, allowedOrigins = [],
     } catch (err) {
       if (err instanceof AuthError) return respond(401, { error: 'unauthorized' });
       return respond(500, { error: 'internal_error' });
+    }
+    if (!takeQuota(user.userId)) {
+      res.setHeader('Retry-After', '60');
+      return respond(429, { error: 'rate_limited' });
     }
     try {
       const output = store[route](user.userId);
