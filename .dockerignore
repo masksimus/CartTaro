@@ -1,0 +1,20 @@
+# Keep credentials and unrelated live-app files out of Docker build context.
+.git
+**/.env
+**/.env.*
+**/node_modules
+**/*.sqlite
+**/*.sqlite-shm
+**/*.sqlite-wal
+**/data
+**/coverage
+*.jpg
+cards.zip
+index.html
+engagement.css
+engagement.js
+progression.js
+progression.css
+visual-v2.css
+pilot
+tests
