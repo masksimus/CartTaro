@@ -1,0 +1,76 @@
+name: carttaro-v2-pilot
+
+services:
+  backend:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      HOST: 0.0.0.0
+      PORT: "8787"
+      VK_APP_ID: "54582199"
+      VK_PROTECTED_KEY_FILE: /run/secrets/vk_protected_key
+      ALLOWED_ORIGINS: https://${PILOT_DOMAIN:?PILOT_DOMAIN is required}
+      DB_PATH: /data/taro-progress.sqlite
+    secrets:
+      - vk_protected_key
+    volumes:
+      - taro_data:/data
+    networks:
+      - private
+    read_only: true
+    tmpfs:
+      - /tmp:noexec,nosuid,size=8m
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:8787/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 20s
+      timeout: 4s
+      retries: 3
+      start_period: 15s
+    logging:
+      # No query strings or bearer launch signatures in container logs.
+      driver: none
+
+  web:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    depends_on:
+      backend:
+        condition: service_healthy
+    environment:
+      PILOT_DOMAIN: ${PILOT_DOMAIN:?PILOT_DOMAIN is required}
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - ../pilot:/srv/pilot:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    networks:
+      - private
+    security_opt:
+      - no-new-privileges:true
+    logging:
+      driver: none
+
+secrets:
+  vk_protected_key:
+    # A path on the staging host OUTSIDE this repository.
+    file: ${VK_SECRET_FILE:?VK_SECRET_FILE must point to a host key file}
+
+volumes:
+  taro_data:
+  caddy_data:
+  caddy_config:
+
+networks:
+  private:
+    driver: bridge
