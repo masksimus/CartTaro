@@ -49,8 +49,21 @@ test('full user journey: daily missions, unlocked arcanum, achievements and pers
 
   await openProgress(page);
   await expect(page.locator('#arcanaMissionsDone')).toHaveText('3 / 3');
-  await expect(page.locator('#arcanaCollection .arcana-tile.is-open')).toHaveCount(4);
-  await expect(page.locator('#arcanaCount')).toHaveText('4 / 22');
+  // A three-card spread can legitimately repeat the already drawn daily card.
+  // Derive the expected unique count from the saved original history.
+  const discovered = await page.evaluate(() => {
+    const entries = JSON.parse(sessionStorage.getItem('taro_history') || '[]');
+    const ids = new Set();
+    for (const entry of entries) {
+      if (entry.type === 'daily') ids.add(entry.cardId);
+      if (entry.type === 'spread') for (const card of entry.cards || []) ids.add(card.cardId);
+    }
+    return ids.size;
+  });
+  expect(discovered).toBeGreaterThanOrEqual(3);
+  expect(discovered).toBeLessThanOrEqual(4);
+  await expect(page.locator('#arcanaCollection .arcana-tile.is-open')).toHaveCount(discovered);
+  await expect(page.locator('#arcanaCount')).toHaveText(discovered + ' / 22');
 
   const png = testInfo.outputPath('08-arcanum-progress.png');
   await page.screenshot({ path: png, fullPage: true, animations: 'disabled' });
@@ -63,7 +76,7 @@ test('full user journey: daily missions, unlocked arcanum, achievements and pers
   await page.reload({ waitUntil: 'domcontentloaded' });
   await expect(page.locator('#splash')).toHaveCount(0, { timeout: 12000 });
   await openProgress(page);
-  await expect(page.locator('#arcanaCount')).toHaveText('4 / 22');
+  await expect(page.locator('#arcanaCount')).toHaveText(discovered + ' / 22');
   await expect(page.locator('#arcanaMissionsDone')).toHaveText('3 / 3');
 
   const metrics = await page.evaluate(() => ({
