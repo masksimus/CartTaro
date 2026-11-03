@@ -27,8 +27,14 @@
         reverse_proxy backend:8787
     }
 
-    handle {
+    # Never serve README, Git metadata, source maps or unrelated files.
+    @pilotAssets path / /index.html /style.css /client.js
+    handle @pilotAssets {
         root * /srv/pilot
         file_server
+    }
+
+    handle {
+        respond "Not Found" 404
     }
 }
