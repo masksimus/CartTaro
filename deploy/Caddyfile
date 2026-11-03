@@ -1,0 +1,34 @@
+# Closed VK pilot only. No production app files are mounted here.
+# Required: PILOT_DOMAIN points to this host. Caddy provisions HTTPS.
+{$PILOT_DOMAIN} {
+    # VK launch signatures are initially present in the query string.
+    # Never write the URL or signed Authorization header into access logs.
+    log {
+        output discard
+    }
+
+    header {
+        Referrer-Policy "no-referrer"
+        X-Content-Type-Options "nosniff"
+        X-Robots-Tag "noindex, nofollow, noarchive"
+        Strict-Transport-Security "max-age=31536000"
+        Cache-Control "no-store"
+        Permissions-Policy "geolocation=(), microphone=(), camera=()"
+        Content-Security-Policy "default-src 'none'; script-src 'self' https://unpkg.com; style-src 'self'; img-src 'self' data:; connect-src 'self'; base-uri 'none'; form-action 'none'"
+    }
+
+    @api path /api/*
+    handle @api {
+        reverse_proxy backend:8787
+    }
+
+    @health path /health
+    handle @health {
+        reverse_proxy backend:8787
+    }
+
+    handle {
+        root * /srv/pilot
+        file_server
+    }
+}
