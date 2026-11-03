@@ -1,0 +1,60 @@
+name: Tarot V2 Mobile QA
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - feature/tarot-v2-qa
+    paths:
+      - '.github/workflows/tarot-v2-mobile.yml'
+      - 'tests/**'
+      - 'index.html'
+      - 'engagement.js'
+      - 'engagement.css'
+      - 'visual-v2.css'
+
+permissions:
+  contents: read
+
+jobs:
+  chromium-mobile:
+    name: Android viewport smoke tests
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install isolated test dependencies
+        working-directory: tests
+        run: npm install --no-audit --no-fund --ignore-scripts
+      - name: Install Chromium
+        working-directory: tests
+        run: npx playwright install --with-deps chromium
+      - name: Start local server
+        run: |
+          python3 -m http.server 8765 --bind 127.0.0.1 > /tmp/tarot-v2-http.log 2>&1 &
+          for i in $(seq 1 20); do
+            if curl -fsS http://127.0.0.1:8765/index.html -o /dev/null; then
+              exit 0
+            fi
+            sleep 1
+          done
+          cat /tmp/tarot-v2-http.log
+          exit 1
+      - name: Test user flows at 320, 360, and 393 px
+        working-directory: tests
+        run: npm test
+      - name: Upload screenshots, traces, and HTML report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: tarot-v2-mobile-qa
+          if-no-files-found: warn
+          retention-days: 7
+          path: |
+            tests/report/
+            tests/test-results/
