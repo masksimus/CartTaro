@@ -30,10 +30,11 @@ async function prepare(page, request, { bridgeId = 'launch', sdk = 'ok' } = {}) 
   await page.route('https://unpkg.com/**', async route => {
     if (sdk === 'fail') return route.abort();
     const script = bridgeId === 'launch'
-      ? `window.vkBridge = { send: async function(method) {
+      ? `const __signedUser = Number(new URLSearchParams(location.search).get('vk_user_id'));
+        window.vkBridge = { send: async function(method) {
           if (method === 'VKWebAppInit') return {};
           if (method === 'VKWebAppGetUserInfo') return {
-            id: Number(new URLSearchParams(location.search).get('vk_user_id')), first_name: 'Тест'
+            id: __signedUser, first_name: 'Тест'
           };
           throw Error('Unsupported bridge method');
         } };`
