@@ -1,0 +1,203 @@
+/* Карты Таро V2: only the new progress screen; safe to remove independently. */
+.arcana-overview {
+  margin: 10px 0 20px;
+  padding: 18px 17px;
+  border: 1px solid rgba(241, 211, 165, .34);
+  background:
+    radial-gradient(circle at 85% 10%, rgba(213, 162, 132, .18), transparent 50%),
+    linear-gradient(150deg, rgba(59, 40, 76, .94), rgba(20, 19, 41, .97));
+  border-radius: 20px;
+}
+.arcana-overview h2,
+.arcana-section-title {
+  color: var(--gold-bright, #ffe5b2);
+  font-family: 'Cinzel', Georgia, serif;
+  font-size: 16px;
+  letter-spacing: .5px;
+  line-height: 1.4;
+  margin: 0 0 10px;
+}
+.arcana-overview p,
+.arcana-caption {
+  color: var(--ivory-dim, #d7cede);
+  line-height: 1.5;
+  font-size: 15px;
+}
+.arcana-overview p { margin: 0 0 12px; }
+.arcana-overview strong {
+  color: #ffe5b2;
+  font-variant-numeric: tabular-nums;
+  font-family: 'Cinzel', Georgia, serif;
+  font-size: 20px;
+}
+.arcana-progress {
+  margin: 13px 0 10px;
+  height: 9px;
+  background: rgba(0, 0, 0, .32);
+  border-radius: 99px;
+  overflow: hidden;
+  border: 1px solid rgba(241, 211, 165, .22);
+}
+.arcana-progress span {
+  display: block;
+  height: 100%;
+  width: 0%;
+  background: linear-gradient(90deg, #9972a3, #ecc58a);
+  border-radius: 99px;
+  transition: width .28s ease;
+}
+.arcana-section {
+  margin-bottom: 24px;
+}
+.arcana-section-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+.arcana-section-title { margin: 0; }
+.arcana-counter {
+  color: #f1d49f;
+  font-size: 13px;
+  white-space: nowrap;
+  font-family: system-ui, sans-serif;
+}
+.arcana-collection {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 9px;
+  padding: 0;
+  list-style: none;
+}
+.arcana-tile {
+  min-width: 0;
+  padding: 6px 5px 9px;
+  border-radius: 12px;
+  background: linear-gradient(170deg, rgba(44, 33, 67, .98), rgba(16, 13, 31, .96));
+  border: 1px solid rgba(243, 213, 166, .20);
+  text-align: center;
+  box-shadow: 0 8px 15px rgba(0, 0, 0, .15);
+}
+.arcana-tile.is-open {
+  border-color: rgba(248, 207, 151, .65);
+  background: linear-gradient(165deg, rgba(70, 45, 77, .98), rgba(22, 20, 44, .98));
+}
+.arcana-picture {
+  position: relative;
+  overflow: hidden;
+  border-radius: 8px;
+  aspect-ratio: 2 / 3;
+  background:
+    radial-gradient(circle at center, rgba(235, 199, 149, .16), transparent 65%),
+    #21162e;
+  border: 1px solid rgba(237, 200, 146, .23);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.arcana-glyph {
+  font-size: 28px;
+  color: #a997c1;
+  line-height: 1;
+}
+.arcana-image {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.arcana-tile-name {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  margin-top: 7px;
+  font-size: 11px;
+  line-height: 1.3;
+  color: #c9bfd3;
+  font-family: system-ui, sans-serif;
+}
+.arcana-tile.is-open .arcana-tile-name { color: #ffe4b0; }
+.arcana-mission {
+  display: flex;
+  gap: 11px;
+  align-items: center;
+  min-height: 54px;
+  padding: 11px 13px;
+  margin-bottom: 8px;
+  border: 1px solid rgba(240, 203, 157, .22);
+  background: rgba(38, 30, 62, .86);
+  border-radius: 13px;
+}
+.arcana-mission.is-done {
+  background: linear-gradient(135deg, rgba(67, 54, 73, .94), rgba(39, 36, 65, .96));
+  border-color: rgba(240, 203, 157, .56);
+}
+.arcana-mission-icon { font-size: 21px; flex-shrink: 0; }
+.arcana-mission-title { color: #f7f1e8; flex: 1; font-size: 15px; line-height: 1.3; }
+.arcana-mission-status { color: #c4b8ce; font-size: 23px; flex-shrink: 0; }
+.arcana-mission.is-done .arcana-mission-status { color: #ffe1a3; }
+.arcana-achievements {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 9px;
+}
+.arcana-achievement {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 64px;
+  padding: 10px 9px;
+  border: 1px solid rgba(238, 208, 162, .19);
+  border-radius: 13px;
+  background: rgba(40, 31, 61, .77);
+  opacity: .75;
+}
+.arcana-achievement.is-earned {
+  opacity: 1;
+  border-color: rgba(244, 210, 149, .66);
+  background: linear-gradient(120deg, rgba(77, 54, 81, .93), rgba(39, 34, 64, .91));
+}
+.arcana-achievement-icon {
+  flex-shrink: 0;
+  width: 35px;
+  height: 35px;
+  display: grid;
+  place-items: center;
+  border: 1px solid rgba(238, 204, 147, .30);
+  border-radius: 50%;
+  color: #f4d39b;
+  font-size: 23px;
+}
+.arcana-achievement-copy { min-width: 0; }
+.arcana-achievement-copy strong {
+  display: block;
+  font-size: 12px;
+  color: #f9eddc;
+  line-height: 1.3;
+  font-weight: 600;
+}
+.arcana-achievement-copy span {
+  display: block;
+  margin-top: 5px;
+  color: #d3c2d7;
+  font: 12px/1.2 system-ui, sans-serif;
+}
+#arcanaStatus {
+  margin: 12px 0 19px;
+  color: #cfc4d6;
+  font-size: 13px;
+  line-height: 1.45;
+}
+@media (max-width: 360px) {
+  .arcana-collection { gap: 6px; }
+  .arcana-tile { padding: 4px 3px 7px; }
+  .arcana-tile-name { font-size: 10px; }
+  .arcana-achievement { gap: 6px; padding: 8px 6px; }
+  .arcana-achievement-copy strong { font-size: 11px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .arcana-progress span { transition: none; }
+}
