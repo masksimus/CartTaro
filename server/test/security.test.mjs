@@ -30,6 +30,19 @@ const authenticate = (raw, nowMs = stamp) => verifyVkLaunch(raw, {
   secret: SECRET, appId: APP, nowMs, ttlSeconds: 900
 });
 
+test('canonical HMAC matches VK published launch-parameter example', () => {
+  // Public, historical fixture from VKCOM/vk-apps-launch-params/examples/python3.py.
+  // Not a secret for the user's application. Example does not include vk_ts,
+  // therefore we only check the published signing vector here.
+  const sample = 'vk_user_id=494075&vk_app_id=6736218&vk_is_app_user=1' +
+    '&vk_are_notifications_enabled=1&vk_language=ru&vk_access_token_settings=' +
+    '&vk_platform=android&sign=htQFduJpLxz7ribXRZpDFUH-XEUhC9rBPTJkjUFEkRA';
+  const params = new URLSearchParams(sample);
+  const computed = sign(params, 'wvl68m4dR1UpLrVRli');
+  assert.equal(computed, 'htQFduJpLxz7ribXRZpDFUH-XEUhC9rBPTJkjUFEkRA');
+});
+
+
 test('VK signed launch: accepted only when app, user, timestamp and HMAC are valid', () => {
   assert.equal(authenticate(launch()).userId, '1234');
   assert.equal(authenticate('?' + launch({ userId: '555' })).userId, '555');
