@@ -5,6 +5,7 @@ on:
   push:
     branches:
       - feature/tarot-v2-qa
+      - feature/tarot-v2-progression
     paths:
       - '.github/workflows/tarot-v2-mobile.yml'
       - 'tests/**'
@@ -12,6 +13,8 @@ on:
       - 'engagement.js'
       - 'engagement.css'
       - 'visual-v2.css'
+      - 'progression.js'
+      - 'progression.css'
 
 permissions:
   contents: read
