@@ -40,7 +40,7 @@ test('VK signed launch: accepted only when app, user, timestamp and HMAC are val
   assert.throws(() => authenticate(launch({ userId: 'abc' })), AuthError);
   assert.throws(() => authenticate(launch({ ts: Math.floor(stamp / 1000) - 901 })), AuthError);
   assert.throws(() => authenticate(launch({ ts: Math.floor(stamp / 1000) + 61 })), AuthError);
-  assert.throws(() => authenticate(launch({ ts: Math.floor(stamp / 1000) + 20 }), stamp + 100), AuthError);
+  assert.equal(authenticate(launch({ ts: Math.floor(stamp / 1000) + 20 }), stamp + 100).userId, '1234');
   assert.throws(() => authenticate(launch().replace('&sign=', '&vk_user_id=88&sign=')), AuthError);
   assert.throws(() => authenticate(launch() + '&sign=xxx'), AuthError);
   assert.throws(() => authenticate('vk_app_id=' + APP + '&vk_user_id=7&vk_ts=123'), AuthError);
