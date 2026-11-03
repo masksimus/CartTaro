@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="referrer" content="no-referrer">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'none'; base-uri 'none'; form-action 'none'">
+  <meta name="robots" content="noindex,nofollow,noarchive">
+  <meta name="description" content="Отдельная демонстрация интерфейса Карт Таро, без авторизации ВК и настоящих начислений.">
+  <title>Карты Таро · визуальное HTTPS-демо</title>
+  <link rel="stylesheet" href="./style.css">
+  
+  <script defer src="./demo.js"></script>
+</head>
+<body>
+  <main class="wrap">
+    <header class="hero">
+      <div class="eyebrow">✦ Карты Таро · просмотр дизайна</div>
+      <h1>Путь Арканов</h1>
+      <p><strong>Визуальное демо.</strong> Только пример интерфейса, без авторизации ВК, реального сервера и пользовательских данных.</p>
+    </header>
+    <section class="card status-card" aria-labelledby="statusTitle">
+      <h2 id="statusTitle">Режим просмотра</h2>
+      <p class="status" id="status" role="status" aria-live="polite">Демонстрация интерфейса. Данные вымышленные, ничего не сохраняется.</p>
+      <div class="chips">
+        <span class="chip" id="bridgeStatus">VK Bridge: выключен</span>
+        <span class="chip" id="authStatus">API: выключен</span>
+      </div>
+    </section>
+    <section class="stats" aria-label="Демонстрационный прогресс">
+      <div class="card stat"><strong id="crystals">—</strong><span>Кристаллы</span></div>
+      <div class="card stat"><strong id="streak">—</strong><span>Дней подряд</span></div>
+      <div class="card stat"><strong id="unlocked">—</strong><span>Арканов открыто</span></div>
+    </section>
+    <section class="card actions" aria-labelledby="actionsTitle">
+      <h2 id="actionsTitle">Интерактивное демо</h2>
+      <div class="action-row">
+        <button type="button" id="claimButton">Показать награду</button>
+        <button type="button" id="drawButton">Показать карту дня</button>
+      </div>
+      <div id="drawResult" class="draw-result" aria-live="polite"></div>
+      <p class="hint">Демо работает только в этом окне. Никаких запросов к VK и API не выполняется.</p>
+    </section>
+    <section class="card tasks" aria-labelledby="tasksTitle">
+      <h2 id="tasksTitle">Пример заданий</h2>
+      <div id="missions" class="mission-list"><span class="muted">Ожидание авторизации…</span></div>
+    </section>
+    <section class="card collection" aria-labelledby="collectionTitle">
+      <h2 id="collectionTitle">Собранные Старшие Арканы</h2>
+      <div id="collection" class="collection-grid" role="list" aria-label="Коллекция 22 арканов"></div>
+    </section>
+    <section class="card achievements" aria-labelledby="achievementsTitle">
+      <h2 id="achievementsTitle">Достижения</h2>
+      <div id="achievements" class="achievements-grid"></div>
+    </section>
+    <footer>Это только просмотр дизайна. Для настоящих наград и сохранения требуется отдельная проверка в VK и защищённый сервер.</footer>
+  </main>
+</body>
+</html>
