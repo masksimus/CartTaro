@@ -1,0 +1,46 @@
+name: Tarot V2 Secure Server QA
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - feature/tarot-v2-secure-backend
+    paths:
+      - '.github/workflows/tarot-v2-server.yml'
+      - 'server/**'
+
+permissions:
+  contents: read
+
+jobs:
+  security:
+    name: VK signature, tamper resistance, SQLite safety
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    steps:
+      - name: Check out branch
+        uses: actions/checkout@v4
+      - name: Install Node 24
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Ensure server scripts parse
+        run: |
+          node --check server/src/auth.mjs
+          node --check server/src/store.mjs
+          node --check server/src/http.mjs
+          node --check server/src/main.mjs
+          node --check server/test/security.test.mjs
+      - name: Run backend authorization, storage and HTTP tests
+        working-directory: server
+        run: node --test --test-reporter=spec test/*.test.mjs
+      - name: Assert existing VK app is not connected to unlaunched server
+        run: |
+          if grep -q 'server/src/http.mjs' index.html; then
+            echo 'Unexpected frontend server import'
+            exit 1
+          fi
+          if grep -q 'tarot-v2-secure-backend' index.html; then
+            echo 'Unexpected frontend backend wiring'
+            exit 1
+          fi
