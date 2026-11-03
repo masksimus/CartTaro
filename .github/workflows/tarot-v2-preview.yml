@@ -1,0 +1,54 @@
+name: Tarot V2 visual preview QA
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - feature/tarot-v2-https-preview
+    paths:
+      - 'preview/**'
+      - 'tests/preview.spec.mjs'
+      - '.github/workflows/tarot-v2-preview.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  visual-preview:
+    name: Three viewport tests, no VK or API
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Check demo script syntax
+        run: node --check preview/demo.js
+      - name: Install browser tooling
+        working-directory: tests
+        run: |
+          npm install --no-fund --no-audit --ignore-scripts
+          npx playwright install --with-deps chromium
+      - name: Start local preview server
+        run: |
+          python3 -m http.server 8765 --bind 127.0.0.1 > /tmp/taro-static.log 2>&1 &
+          for i in $(seq 1 20); do
+            if curl -fsS http://127.0.0.1:8765/preview/index.html >/dev/null; then exit 0; fi
+            sleep 1
+          done
+          cat /tmp/taro-static.log
+          exit 1
+      - name: Test Android sized viewports
+        working-directory: tests
+        run: npx playwright test --config playwright.config.mjs preview.spec.mjs
+      - name: Preserve screenshots and reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: tarot-v2-https-preview-qa
+          retention-days: 7
+          if-no-files-found: warn
+          path: |
+            tests/report/
+            tests/test-results/
