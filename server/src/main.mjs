@@ -2,8 +2,9 @@ import { mkdirSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { createStore } from './store.mjs';
 import { createApiServer } from './http.mjs';
+import { readProtectedKey } from './secret.mjs';
 
-const secret = process.env.VK_PROTECTED_KEY || '';
+const secret = readProtectedKey();
 const appId = Number(process.env.VK_APP_ID || 54582199);
 const port = Number(process.env.PORT || 8787);
 const host = process.env.HOST || '127.0.0.1';
