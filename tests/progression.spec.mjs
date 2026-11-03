@@ -69,6 +69,33 @@ test('full user journey: daily missions, unlocked arcanum, achievements and pers
   await page.screenshot({ path: png, fullPage: true, animations: 'disabled' });
   await testInfo.attach('Arcanum progress', { path: png, contentType: 'image/png' });
 
+  // A full-page capture of a transformed mobile page can omit non-viewport
+  // painting. Check that long-scroll content actually becomes visible.
+  await expect(page.locator('#arcanaAchievements .arcana-achievement')).toHaveCount(6);
+  await page.locator('#arcanaAchievements').scrollIntoViewIfNeeded();
+  await expect(page.locator('#arcanaAchievements')).toBeInViewport({ ratio: 0.6 });
+  const achievementShot = testInfo.outputPath('08b-achievements-viewport.png');
+  await page.screenshot({ path: achievementShot, fullPage: false, animations: 'disabled' });
+  await testInfo.attach('Achievements visible', { path: achievementShot, contentType: 'image/png' });
+
+  const lastTile = page.locator('#arcanaCollection .arcana-tile').last();
+  await lastTile.scrollIntoViewIfNeeded();
+  await expect(lastTile).toBeInViewport({ ratio: 0.6 });
+  const collectionShot = testInfo.outputPath('08c-collection-viewport.png');
+  await page.screenshot({ path: collectionShot, fullPage: false, animations: 'disabled' });
+  await testInfo.attach('Collection visible', { path: collectionShot, contentType: 'image/png' });
+
+  const tileReachability = await lastTile.evaluate((tile) => {
+    const rect = tile.getBoundingClientRect();
+    const bar = document.querySelector('.tab-bar').getBoundingClientRect();
+    return {
+      tileBottom: rect.bottom,
+      navTop: bar.top,
+      viewportHeight: innerHeight
+    };
+  });
+  expect(tileReachability.tileBottom).toBeLessThanOrEqual(tileReachability.navTop + 2);
+
   const storage = await page.evaluate(() => Object.keys(sessionStorage));
   for (const key of ['taro_consent', 'taro_dailyCard', 'taro_history', 'taro_taro_engagement_v1', 'taro_taro_arcana_collection_v1']) {
     expect(storage).toContain(key);
