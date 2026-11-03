@@ -87,7 +87,7 @@
 
     const track = element('rewardWeek');
     track.replaceChildren();
-    const step = (claimed ? state.streak : upcoming - 1) % 7 + 1;
+    const step = ((claimed ? state.streak : upcoming) - 1) % 7 + 1;
     for (let i = 1; i <= REWARDS.length; i++) {
       const day = document.createElement('span');
       day.className = 'reward-day' +
