@@ -53,6 +53,35 @@ jobs:
           docker run --rm -e PILOT_DOMAIN=pilot.example.net \
             -v "${PWD}/deploy/Caddyfile:/etc/caddy/Caddyfile:ro" \
             caddy:2-alpine caddy adapt --config /etc/caddy/Caddyfile --validate
+      - name: Smoke-test actual local HTTPS and static file allowlist
+        run: |
+          docker run -d --name tarot-caddy-smoke \
+            -p 127.0.0.1:8443:443 -e PILOT_DOMAIN=localhost \
+            -v "${PWD}/deploy/Caddyfile:/etc/caddy/Caddyfile:ro" \
+            -v "${PWD}/pilot:/srv/pilot:ro" \
+            caddy:2-alpine
+          good=0
+          for i in $(seq 1 30); do
+            status="$(curl -ksS --max-time 2 --resolve localhost:8443:127.0.0.1 \
+              -o /tmp/taro-pilot-smoke.html -w '%{http_code}' \
+              https://localhost:8443/index.html || true)"
+            if [ "$status" = 200 ]; then good=1; break; fi
+            sleep 1
+          done
+          test "$good" = 1 || { echo "TLS staging static route failed"; exit 1; }
+          grep -q 'Путь Арканов' /tmp/taro-pilot-smoke.html
+          status="$(curl -ksS --resolve localhost:8443:127.0.0.1 \
+            -o /dev/null -w '%{http_code}' \
+            https://localhost:8443/README.md)"
+          test "$status" = 404 || { echo "README must not be served publicly"; exit 1; }
+          curl -ksS --resolve localhost:8443:127.0.0.1 -D /tmp/taro-headers \
+            -o /dev/null https://localhost:8443/client.js
+          grep -qi '^referrer-policy: no-referrer' /tmp/taro-headers
+          grep -qi '^x-robots-tag: noindex' /tmp/taro-headers
+          echo "LOCAL TLS AND STATIC ALLOWLIST PASS"
+      - name: Stop local Caddy smoke test
+        if: always()
+        run: docker rm -f tarot-caddy-smoke || true
       - name: Build non-root backend image
         run: docker compose --env-file deploy/.env -f deploy/compose.yaml build backend
       - name: Boot isolated backend and check container health
