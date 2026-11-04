@@ -29,6 +29,15 @@
   let progress = null;
 
   const setText = (id, value) => { $(id).textContent = String(value); };
+  const withTimeout = (task, ms) => {
+    let timer;
+    return Promise.race([
+      Promise.resolve(task),
+      new Promise((_, reject) => {
+        timer = setTimeout(() => reject(new Error('bridge_timeout')), ms);
+      })
+    ]).finally(() => clearTimeout(timer));
+  };
 
   function setStatus(message, style) {
     const element = $('status');
@@ -137,14 +146,25 @@
     if (!bearer) throw new Error('missing_launch');
     // Same-origin API only: the VK signed launch cannot be sent to a domain
     // chosen via user query, form input, or localStorage.
-    const response = await fetch(api + endpoint, {
-      method,
-      headers: { Authorization: 'Bearer ' + bearer },
-      cache: 'no-store',
-      credentials: 'omit',
-      redirect: 'error',
-      referrerPolicy: 'no-referrer'
-    });
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 14000);
+    let response;
+    try {
+      response = await fetch(api + endpoint, {
+        method,
+        headers: { Authorization: 'Bearer ' + bearer },
+        cache: 'no-store',
+        credentials: 'omit',
+        redirect: 'error',
+        referrerPolicy: 'no-referrer',
+        signal: controller.signal
+      });
+    } catch (error) {
+      if (error?.name === 'AbortError') throw new Error('server_timeout');
+      throw error;
+    } finally {
+      clearTimeout(timer);
+    }
     if (!response.ok) {
       const error = new Error(response.status === 401 ? 'expired_or_invalid' :
         response.status === 429 ? 'rate_limited' : 'network_or_server');
@@ -157,6 +177,7 @@
   function messageForError(e) {
     if (e?.message === 'expired_or_invalid') return 'Сессия ВК не подтверждена или истекла. Откройте тестовую страницу заново внутри ВК.';
     if (e?.message === 'rate_limited') return 'Слишком много запросов. Повторите попытку позже.';
+    if (e?.message === 'server_timeout') return 'Сервер не ответил за 14 секунд. Проверьте подключение Neon и откройте приложение через ВК заново.';
     if (e?.status === 503) return 'Тестовая база данных не подключена или временно недоступна. Прогресс не меняется.';
     if (e?.message === 'invalid_response') return 'Сервер вернул данные неверного формата.';
     return 'Нет связи с сервером. Проверьте подключение и повторно откройте тестовую страницу.';
@@ -218,19 +239,24 @@
       return;
     }
     try {
-      await window.vkBridge.send('VKWebAppInit');
-      const user = await window.vkBridge.send('VKWebAppGetUserInfo');
+      setStatus('Проверяем VK Bridge…');
+      await withTimeout(window.vkBridge.send('VKWebAppInit'), 10000);
+      const user = await withTimeout(window.vkBridge.send('VKWebAppGetUserInfo'), 10000);
       if (!user || String(user.id) !== credentials.userId) {
         throw new Error('identity_mismatch');
       }
       profileId = String(user.id);
       setChip('bridgeStatus', 'VK Bridge: подключён', 'good');
-    } catch (_) {
-      stop('Не удалось подтвердить пользователя через VK Bridge. Откройте проверку внутри VK.');
+    } catch (error) {
+      stop(error?.message === 'bridge_timeout'
+        ? 'VK Bridge не отвечает более 10 секунд. Полностью закройте приложение ВК и откройте заново.'
+        : 'Не удалось подтвердить пользователя через VK Bridge. Откройте проверку внутри VK.');
       setChip('bridgeStatus', 'VK Bridge: ошибка', 'bad');
       return;
     }
     bearer = credentials.launch;
+    setStatus('ВК подтверждён. Подключаем сохранённый прогресс из Neon…');
+    setChip('authStatus', 'Сервер: подключение…');
     try {
       const data = await request('/progress');
       // Fail closed if status API is unavailable, malformed or not explicitly
