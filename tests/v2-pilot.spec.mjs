@@ -269,3 +269,31 @@ test('developer PIN missing in server config prevents reward control display', a
   await expect(page.locator('#pilotAccess')).toBeHidden();
   await expect(page.locator('#claimButton')).toBeDisabled();
 });
+
+
+test('transient PostgreSQL unavailability shows retry and recovers without another VK launch', async ({ page, request }) => {
+  const id=freshUserId();
+  await prepare(page,request);
+  let requests=0;
+  await page.route('**/api/v2/progress', async route => {
+    requests++;
+    if(requests <= 2) {
+      return route.fulfill({status:503,contentType:'application/json',
+        body:'{"error":"storage_unavailable"}'});
+    }
+    await route.fallback();
+  });
+  await visit(page,launch(id));
+  await expect(page.locator('#retryProgressButton')).toBeVisible();
+  await expect(page.locator('#status')).toContainText('Повторить соединение');
+  await expect(page.locator('#claimButton')).toBeDisabled();
+  await expect(page.locator('#drawButton')).toBeDisabled();
+  expect(requests).toBe(2);
+  await page.locator('#retryProgressButton').click();
+  await expect(page.locator('#authStatus')).toContainText('подпись проверена');
+  await expect(page.locator('#retryProgressButton')).toBeHidden();
+  await expect(page.locator('#pilotAccess')).toBeVisible();
+  await expect(page.locator('#claimButton')).toBeDisabled();
+  expect(requests).toBe(3);
+  expect(new URL(page.url()).search).toBe('');
+});
