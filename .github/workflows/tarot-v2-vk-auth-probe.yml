@@ -1,0 +1,72 @@
+name: Tarot V2 VK read-only auth probe QA
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - feature/tarot-v2-vk-auth-probe
+    paths:
+      - 'api/vk/**'
+      - 'server/src/auth.mjs'
+      - 'server/test/vercel-vk-auth.test.mjs'
+      - 'preview/vk-status.*'
+      - 'tests/vk-status.spec.mjs'
+      - '.github/workflows/tarot-v2-vk-auth-probe.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  secure-api:
+    name: HMAC authorization and failure-mode tests
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Syntax check
+        run: |
+          node --check api/vk/verify.mjs
+          node --check api/vk/status.mjs
+          node --check preview/vk-status.js
+      - name: Run all secure API and persistence regression tests
+        run: node --test --test-reporter=spec server/test/*.test.mjs
+
+  browser:
+    name: Safe readiness UX on three Android viewports
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Install Playwright Chromium
+        working-directory: tests
+        run: |
+          npm install --no-fund --no-audit --ignore-scripts
+          npx playwright install --with-deps chromium
+      - name: Start local static files
+        run: |
+          python3 -m http.server 8765 --bind 127.0.0.1 > /tmp/taro-vk-status-static.log 2>&1 &
+          for i in $(seq 1 30); do
+            if curl -fsS http://127.0.0.1:8765/preview/vk-status.html >/dev/null; then exit 0; fi
+            sleep 1
+          done
+          cat /tmp/taro-vk-status-static.log
+          exit 1
+      - name: Check readiness UI on mobile
+        working-directory: tests
+        run: npx playwright test --config playwright.config.mjs vk-status.spec.mjs
+      - name: Preserve traces
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: tarot-vk-auth-probe-qa
+          retention-days: 7
+          if-no-files-found: warn
+          path: |
+            tests/report/
+            tests/test-results/
