@@ -30,6 +30,9 @@
   let profileId = null;
   let progress = null;
   let loadingProgress = false;
+  let readingBusy = false;
+  let currentSpread = null;
+  let revealedCards = new Set();
 
   const setText = (id, value) => { $(id).textContent = String(value); };
   const withTimeout = (task, ms) => {
@@ -202,6 +205,7 @@
     $('retryProgressButton').hidden = true;
     $('retryProgressButton').disabled = true;
     bearer = null;
+    readingControlsBusy(true);
     $('claimButton').disabled = true;
     $('drawButton').disabled = true;
     setStatus(message, 'bad');
@@ -244,6 +248,138 @@
     }
   }
 
+
+  function setReadingStatus(message, error = false) {
+    const node = $('readingStatus');
+    node.textContent = message;
+    node.className = 'reading-status' + (error ? ' bad' : '');
+  }
+
+  function readingControlsBusy(value) {
+    $('spreadOneButton').disabled = value || !bearer;
+    $('spreadThreeButton').disabled = value || !bearer;
+  }
+
+  function asRoman(n) {
+    const vals = [[10,'X'],[9,'IX'],[5,'V'],[4,'IV'],[1,'I']];
+    if(n === 0) return '0';
+    let s = '';
+    for(const [value,symbol] of vals) {
+      while(n >= value) { s += symbol; n -= value; }
+    }
+    return s;
+  }
+
+  function validSpread(spread, count) {
+    if (!spread || spread.kind !== (count === 1 ? 'one' : 'three') ||
+      !Array.isArray(spread.cards) || spread.cards.length !== count ||
+      typeof spread.summary !== 'string' || spread.summary.length > 350) return false;
+    const unique = new Set();
+    for(const card of spread.cards) {
+      if (!card || !Number.isInteger(card.id) || card.id < 0 || card.id > 21 ||
+        unique.has(card.id) || typeof card.reversed !== 'boolean' ||
+        !['name','title','sigil','position','meaning','advice'].every(key =>
+          typeof card[key] === 'string' && card[key].length > 0 && card[key].length <= 350)) {
+        return false;
+      }
+      unique.add(card.id);
+    }
+    return true;
+  }
+
+  function renderReadingCard(card, index) {
+    const slot = make('div','reading-card-slot');
+    slot.setAttribute('role','listitem');
+    slot.appendChild(make('div','reading-position',card.position));
+    const button = make('button','reading-card');
+    button.type='button';
+    button.setAttribute('aria-label','Перевернуть карту ' + (index + 1) + ': ' + card.position);
+    const frame = make('span','reading-card-frame');
+    const back = make('span','reading-card-side reading-card-back');
+    back.appendChild(make('span','reading-back-sigil','✧'));
+    back.appendChild(make('span','reading-back-bottom','ARCANA'));
+    const front = make('span','reading-card-side reading-card-front');
+    front.appendChild(make('span','reading-numeral',asRoman(card.id)));
+    const illustration = make('span','reading-card-illustration');
+    illustration.appendChild(make('span','reading-sigil',card.sigil));
+    front.appendChild(illustration);
+    front.appendChild(make('span','reading-card-name',card.name));
+    front.appendChild(make('span','reading-direction',card.reversed ? 'ОБРАТНАЯ' : 'ПРЯМАЯ'));
+    frame.append(back,front);
+    button.appendChild(frame);
+    button.addEventListener('click',()=>{
+      if(revealedCards.has(index))return;
+      revealedCards.add(index);
+      button.classList.add('revealed');
+      button.disabled=true;
+      button.setAttribute('aria-label',card.name + (card.reversed ? ', обратная карта' : ', прямая карта'));
+      const detail=make('article','reading-meaning');
+      detail.appendChild(make('p','reading-role',card.position + (card.reversed ? ' · обратное положение' : ' · прямое положение')));
+      detail.appendChild(make('h3','',card.name + ' — ' + card.title));
+      detail.appendChild(make('p','',card.meaning));
+      detail.appendChild(make('p','reading-guidance','Для размышления: ' + card.advice));
+      $('readingInterpretations').appendChild(detail);
+      if(revealedCards.size === currentSpread.cards.length) {
+        $('readingInterpretations').appendChild(make('p','reading-summary',currentSpread.summary));
+        setReadingStatus('Расклад открыт. Вы можете выбрать другой вариант.');
+      } else {
+        setReadingStatus('Открыто карт: ' + revealedCards.size + ' из ' + currentSpread.cards.length);
+      }
+    });
+    slot.appendChild(button);
+    return slot;
+  }
+
+  async function requestSpread(count) {
+    if(readingBusy || !bearer || (count !== 1 && count !== 3))return;
+    readingBusy=true;
+    readingControlsBusy(true);
+    currentSpread=null;
+    revealedCards=new Set();
+    $('readingDeck').replaceChildren();
+    $('readingInterpretations').replaceChildren();
+    $('spreadOneButton').setAttribute('aria-pressed',String(count === 1));
+    $('spreadThreeButton').setAttribute('aria-pressed',String(count === 3));
+    setReadingStatus('Сервер перемешивает колоду…');
+    const controller = new AbortController();
+    const timer=setTimeout(()=>controller.abort(),14000);
+    try {
+      const path = count === 1 ? 'one' : 'three';
+      const response = await fetch(api + '/spreads/' + path, {
+        method:'GET',
+        headers:{Authorization:'Bearer ' + bearer},
+        cache:'no-store',
+        credentials:'omit',
+        redirect:'error',
+        referrerPolicy:'no-referrer',
+        signal:controller.signal
+      });
+      if(response.status === 401) {
+        bearer=null;
+        throw new Error('Сессия ВК истекла. Зайдите в приложение заново.');
+      }
+      if(!response.ok)throw new Error('Сервер раскладов временно не отвечает. Попробуйте позже.');
+      const data=await response.json();
+      if(!validSpread(data,count))throw new Error('Получены некорректные данные расклада.');
+      currentSpread=data;
+      const deck=$('readingDeck');
+      deck.className='reading-deck' + (count === 1 ? ' single':'');
+      deck.style.setProperty('--deck-columns',String(count));
+      data.cards.forEach((card,i)=>deck.appendChild(renderReadingCard(card,i)));
+      setReadingStatus(count === 1 ?
+        'Карта перед вами. Нажмите на рубашку, чтобы открыть толкование.' :
+        'Три карты перед вами. Переверните их по очереди.');
+    } catch(error) {
+      setReadingStatus(error.name === 'AbortError' ?
+        'Сервер не ответил за 14 секунд. Выберите расклад ещё раз.' :
+        (error.message || 'Нет связи с сервером.'), true);
+    } finally {
+      clearTimeout(timer);
+      readingBusy=false;
+      readingControlsBusy(false);
+    }
+  }
+
   async function boot() {
     drawCollection([]);
     drawMissions({});
@@ -276,6 +412,8 @@
       return;
     }
     bearer = credentials.launch;
+    readingControlsBusy(false);
+    setReadingStatus('Выберите расклад. Карты будут выбраны на сервере.');
     await loadProgress();
   }
 
@@ -382,6 +520,8 @@
       if (active && progress) showProgress(progress);
     }
   }
+  $('spreadOneButton').addEventListener('click', () => { void requestSpread(1); });
+  $('spreadThreeButton').addEventListener('click', () => { void requestSpread(3); });
   $('pilotUnlockButton').addEventListener('click', () => { void unlockTester(); });
   $('retryProgressButton').addEventListener('click', () => { void loadProgress(); });
   $('claimButton').addEventListener('click', () => { void action('claim'); });
