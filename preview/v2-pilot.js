@@ -29,6 +29,7 @@
   let isUnlocked = false;
   let profileId = null;
   let progress = null;
+  let loadingProgress = false;
 
   const setText = (id, value) => { $(id).textContent = String(value); };
   const withTimeout = (task, ms) => {
@@ -198,6 +199,8 @@
     $('pilotPin').value = '';
     $('pilotAccess').hidden = true;
     $('pilotUnlockButton').disabled = true;
+    $('retryProgressButton').hidden = true;
+    $('retryProgressButton').disabled = true;
     bearer = null;
     $('claimButton').disabled = true;
     $('drawButton').disabled = true;
@@ -273,17 +276,40 @@
       return;
     }
     bearer = credentials.launch;
-    setStatus('ВК подтверждён. Подключаем сохранённый прогресс из Neon…');
+    await loadProgress();
+  }
+
+  // Preserve the signed launch in memory ONLY for a temporary retry.
+  // No browser storage or URL token; no rewards on transient read errors.
+  async function loadProgress() {
+    if (!bearer || loadingProgress) return;
+    loadingProgress = true;
+    $('retryProgressButton').hidden = true;
+    $('retryProgressButton').disabled = true;
+    setStatus('Подключаем сохранённый прогресс из Neon…');
     setChip('authStatus', 'Сервер: подключение…');
     try {
-      const data = await request('/progress');
-      // Fail closed if status API is unavailable, malformed or not explicitly
-      // write-enabled. The server enforces this gate independently.
+      let data;
+      try {
+        data = await request('/progress');
+      } catch (firstError) {
+        // One safe retry handles a suspended Neon compute or a cold Vercel
+        // instance. Both attempts are GET; neither changes progress.
+        if (firstError.message !== 'server_timeout' &&
+            firstError.status !== 503 && firstError.status !== 504) {
+          throw firstError;
+        }
+        setStatus('Сервер отвечает медленно. Повторяем безопасное чтение прогресса…');
+        await new Promise(resolve => setTimeout(resolve, 500));
+        data = await request('/progress');
+      }
       writesEnabled = false;
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), 6000);
       try {
         const statusResponse = await fetch(api + '/status', {
           cache: 'no-store', credentials: 'omit', redirect: 'error',
-          referrerPolicy: 'no-referrer'
+          referrerPolicy: 'no-referrer', signal: controller.signal
         });
         if (statusResponse.ok) {
           const readiness = await statusResponse.json();
@@ -294,7 +320,7 @@
             readiness?.mode === 'developer_pilot';
         }
       } catch (_) { /* Read-only is the only fallback. */ }
-      // Server verifies HMAC + application ID + timestamp independently.
+      finally { clearTimeout(timer); }
       active = true;
       showProgress(data);
       setChip('authStatus', 'Сервер: подпись проверена', 'good');
@@ -303,9 +329,26 @@
       setStatus(writesEnabled ?
         'Вход подтверждён. Для тестовых наград введите код тестировщика ниже.' :
         'Вход подтверждён. Прогресс доступен только для чтения; начисления отключены.', 'good');
-      // Signed parameters remain only in memory during this short-lived session.
-    } catch (e) {
-      stop(messageForError(e));
+    } catch (error) {
+      if (error?.status === 401) {
+        stop(messageForError(error));
+        return;
+      }
+      active = false;
+      writesEnabled = false;
+      isUnlocked = false;
+      testPin = null;
+      $('pilotPin').value = '';
+      $('pilotAccess').hidden = true;
+      $('claimButton').disabled = true;
+      $('drawButton').disabled = true;
+      setChip('authStatus', 'Сервер: подключение не удалось', 'bad');
+      setStatus(messageForError(error) +
+        ' Нажмите «Повторить соединение», не меняя настройки ВК.', 'bad');
+      $('retryProgressButton').hidden = false;
+    } finally {
+      loadingProgress = false;
+      $('retryProgressButton').disabled = !bearer;
     }
   }
 
@@ -340,6 +383,7 @@
     }
   }
   $('pilotUnlockButton').addEventListener('click', () => { void unlockTester(); });
+  $('retryProgressButton').addEventListener('click', () => { void loadProgress(); });
   $('claimButton').addEventListener('click', () => { void action('claim'); });
   $('drawButton').addEventListener('click', () => { void action('draw'); });
   void boot();
