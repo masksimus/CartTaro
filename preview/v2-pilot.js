@@ -561,7 +561,7 @@
       const remote = await request('/progress');
       if (!remote || !Array.isArray(remote.arcana) ||
           typeof remote.dayUtc !== 'string' ||
-          !/^\\d{4}-\\d{2}-\\d{2}$/.test(remote.dayUtc) ||
+          !/^\d{4}-\d{2}-\d{2}$/.test(remote.dayUtc) ||
           (remote.dailyCardId !== null &&
            (!Number.isInteger(remote.dailyCardId) || remote.dailyCardId < 0 || remote.dailyCardId > 21)) ||
           (remote.dailyCardDrawn === true) !== (remote.dailyCardId !== null)) {
