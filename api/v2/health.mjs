@@ -19,24 +19,31 @@ export default async function handler(req, res) {
     res.statusCode = 503;
     return res.end(JSON.stringify({
       service: 'tarot-v2-postgres', ready: false,
-      database: 'not_configured', rewardsEnabled: false
+      database: 'not_configured', progressReadReady: false, rewardsEnabled: false
     }));
   }
   try {
     // Runs the same first-time schema/bootstrap path as the real progress
     // endpoint, then an actual SELECT 1. It does not read private user data.
-    const ready = await getPgStore().check();
+    const store = getPgStore();
+    const connected = await store.check();
+    // Exercise the actual read-only progress query path using an unused
+    // synthetic ID. Never inserts an account, reveals identity or writes.
+    const snapshot = connected ? await store.readProgress('9999999999999999') : null;
+    const ready = connected && snapshot?.crystals === 0 &&
+      snapshot?.streak === 0 && Array.isArray(snapshot?.arcana); 
     res.statusCode = ready ? 200 : 503;
     return res.end(JSON.stringify({
       service: 'tarot-v2-postgres', ready: Boolean(ready),
       database: ready ? 'connected' : 'unavailable',
+      progressReadReady: Boolean(ready),
       rewardsEnabled: process.env.TARO_V2_WRITES_ENABLED === 'true'
     }));
   } catch {
     res.statusCode = 503;
     return res.end(JSON.stringify({
       service: 'tarot-v2-postgres', ready: false,
-      database: 'unavailable', rewardsEnabled: false
+      database: 'unavailable', progressReadReady: false, rewardsEnabled: false
     }));
   }
 }
