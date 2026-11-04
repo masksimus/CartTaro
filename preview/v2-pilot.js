@@ -24,6 +24,7 @@
   let bearer = null;
   let active = false;
   let busy = false;
+  let writesEnabled = false;
   let profileId = null;
   let progress = null;
 
@@ -128,8 +129,8 @@
     drawCollection(data.arcana);
     drawMissions(data.missions);
     drawAchievements(data.achievements);
-    $('claimButton').disabled = !active || busy || data.claimedToday === true;
-    $('drawButton').disabled = !active || busy || data.dailyCardDrawn === true;
+    $('claimButton').disabled = !active || !writesEnabled || busy || data.claimedToday === true;
+    $('drawButton').disabled = !active || !writesEnabled || busy || data.dailyCardDrawn === true;
   }
 
   async function request(endpoint, method = 'GET') {
@@ -164,6 +165,7 @@
   function stop(message) {
     active = false;
     busy = false;
+    writesEnabled = false;
     bearer = null;
     $('claimButton').disabled = true;
     $('drawButton').disabled = true;
@@ -172,7 +174,7 @@
   }
 
   async function action(which) {
-    if (!active || busy || !bearer || !progress) return;
+    if (!active || !writesEnabled || busy || !bearer || !progress) return;
     if ((which === 'claim' && progress.claimedToday) ||
         (which === 'draw' && progress.dailyCardDrawn)) return;
     busy = true;
@@ -231,11 +233,30 @@
     bearer = credentials.launch;
     try {
       const data = await request('/progress');
+      // Fail closed if status API is unavailable, malformed or not explicitly
+      // write-enabled. The server enforces this gate independently.
+      writesEnabled = false;
+      try {
+        const statusResponse = await fetch(api + '/status', {
+          cache: 'no-store', credentials: 'omit', redirect: 'error',
+          referrerPolicy: 'no-referrer'
+        });
+        if (statusResponse.ok) {
+          const readiness = await statusResponse.json();
+          writesEnabled = readiness?.service === 'tarot-v2-postgres' &&
+            readiness?.appId === 54582199 &&
+            readiness?.storageConfigured === true &&
+            readiness?.rewardsEnabled === true &&
+            readiness?.mode === 'developer_pilot';
+        }
+      } catch (_) { /* Read-only is the only fallback. */ }
       // Server verifies HMAC + application ID + timestamp independently.
       active = true;
       showProgress(data);
       setChip('authStatus', 'Сервер: подпись проверена', 'good');
-      setStatus('Проверка пользователя и серверного прогресса успешна.', 'good');
+      setStatus(writesEnabled ?
+        'Проверка пользователя и серверного прогресса успешна.' :
+        'Вход подтверждён. Прогресс доступен только для чтения; начисления отключены.', 'good');
       // Signed parameters remain only in memory during this short-lived session.
     } catch (e) {
       stop(messageForError(e));
