@@ -89,3 +89,29 @@ test('forged, wrong-origin, query, body and unsigned API access denied', async (
   const all=await Promise.all(invalid.map(async ([r,c])=>[await r,c]));
   for(const [response,code] of all)assert.equal(response.statusCode,code);
 });
+
+
+test('V2 writes remain blocked without the explicit gate, even when Postgres is ready', async () => {
+  const previous = process.env.TARO_V2_WRITES_ENABLED;
+  process.env.TARO_V2_WRITES_ENABLED = 'false';
+  const id=String(randomInt(400000000,499999999));
+  const token='Bearer '+signed(id);
+  try {
+    const status=await req('status',{auth:null});
+    assert.equal(status.statusCode,200);
+    assert.equal(status.data.storageConfigured,true);
+    assert.equal(status.data.rewardsEnabled,false);
+    const claim=await req('claim',{auth:token});
+    const draw=await req('draw',{auth:token});
+    assert.equal(claim.statusCode,503);
+    assert.deepEqual(claim.data,{error:'rewards_disabled'});
+    assert.equal(draw.statusCode,503);
+    assert.deepEqual(draw.data,{error:'rewards_disabled'});
+    const progress=await req('progress',{auth:token});
+    assert.equal(progress.statusCode,200);
+    assert.equal(progress.data.crystals,0);
+  } finally {
+    if(previous===undefined)delete process.env.TARO_V2_WRITES_ENABLED;
+    else process.env.TARO_V2_WRITES_ENABLED=previous;
+  }
+});
