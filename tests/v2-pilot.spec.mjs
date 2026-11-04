@@ -4,6 +4,7 @@ import { createHmac, randomInt } from 'node:crypto';
 const APP_ID = '54582199';
 // Test-only fixture. It is NOT the secure key of any real VK application.
 const TEST_KEY = 'TARO_E2E_FIXTURE_ONLY_NEVER_PRODUCTION';
+const TEST_PIN = '0123456789abcdef0123456789abcdef';
 const backend = 'http://127.0.0.1:8788';
 
 function launch(userId) {
@@ -48,10 +49,11 @@ async function prepare(page, request, { bridgeId = 'launch', sdk = 'ok' } = {}) 
   await page.route('**/api/v2/**', async route => {
     const upstreamUrl = new URL(route.request().url());
     const authorization = route.request().headers()['authorization'];
+    const testPin = route.request().headers()['x-taro-test-pin'];
     // Playwright routes the request to a REAL running local API, not a mock.
     const result = await request.fetch(backend + upstreamUrl.pathname, {
       method: route.request().method(),
-      headers: { Authorization: authorization || '' },
+      headers: { Authorization: authorization || '', ...(testPin ? { 'X-Taro-Test-Pin':testPin }: {}) },
       failOnStatusCode: false
     });
     proxied.push({ path: upstreamUrl.pathname, status: result.status() });
@@ -76,6 +78,13 @@ test('REAL POSTGRES local API: verified VK launch, single reward, server daily c
   await expect(page.locator('#bridgeStatus')).toContainText('подключён');
   await expect(page.locator('#authStatus')).toContainText('подпись проверена');
   await expect(page.locator('#status')).toContainText('успешна');
+  await expect(page.locator('#pilotAccess')).toBeVisible();
+  await expect(page.locator('#claimButton')).toBeDisabled();
+  await expect(page.locator('#drawButton')).toBeDisabled();
+  await page.locator('#pilotPin').fill(TEST_PIN);
+  await page.locator('#pilotUnlockButton').click();
+  await expect(page.locator('#status')).toContainText('Тестовый доступ подтверждён');
+  await expect(page.locator('#pilotAccess')).toBeHidden();
   await expect(page.locator('#claimButton')).toBeEnabled();
   await expect(page.locator('#drawButton')).toBeEnabled();
   await expect(page.locator('#collection .arcana')).toHaveCount(22);
@@ -102,7 +111,7 @@ test('REAL POSTGRES local API: verified VK launch, single reward, server daily c
   expect(json.arcana).toHaveLength(1);
   expect(json.claimedToday).toBe(true);
   const repeat = await request.post(backend + '/api/v2/daily/claim', {
-    headers: { Authorization: 'Bearer ' + token }
+    headers: { Authorization: 'Bearer ' + token, 'X-Taro-Test-Pin': TEST_PIN }
   });
   expect((await repeat.json()).granted).toBe(false);
 
@@ -218,4 +227,45 @@ test('expired signed parameters show a recoverable sign-in failure, without user
   await expect(page.locator('#status')).toContainText('Сессия ВК не подтверждена или истекла');
   await expect(page.locator('#claimButton')).toBeDisabled();
   await expect(page.locator('#drawButton')).toBeDisabled();
+});
+
+
+test('wrong tester PIN cannot enable rewards or add DB progress, correct PIN can', async ({page,request}) => {
+  const id=freshUserId();
+  const token=launch(id);
+  const calls=await prepare(page,request);
+  await visit(page,token);
+  await expect(page.locator('#pilotAccess')).toBeVisible();
+  await page.locator('#pilotPin').fill('f'.repeat(32));
+  await page.locator('#pilotUnlockButton').click();
+  await expect(page.locator('#status')).toContainText('Код тестировщика не принят');
+  await expect(page.locator('#claimButton')).toBeDisabled();
+  await expect(page.locator('#drawButton')).toBeDisabled();
+  await expect(page.locator('#pilotAccess')).toBeVisible();
+  expect(calls.some(x=>x.path.endsWith('/daily/claim') && x.status===200)).toBe(false);
+  const state=await request.get(backend+'/api/v2/progress',{
+    headers:{ Authorization:'Bearer '+token }
+  });
+  expect((await state.json()).crystals).toBe(0);
+  await page.locator('#pilotPin').fill(TEST_PIN);
+  await page.locator('#pilotUnlockButton').click();
+  await expect(page.locator('#claimButton')).toBeEnabled();
+  await expect(page.locator('#drawButton')).toBeEnabled();
+  await page.reload();
+  await expect(page.locator('#claimButton')).toBeDisabled();
+});
+
+test('developer PIN missing in server config prevents reward control display', async ({page,request}) => {
+  await prepare(page,request);
+  await page.route('**/api/v2/status',route=>route.fulfill({
+    status:200,contentType:'application/json',
+    body:JSON.stringify({
+      service:'tarot-v2-postgres',appId:54582199,
+      storageConfigured:true,rewardsEnabled:false,mode:'read_only'
+    })
+  }));
+  await visit(page,launch(freshUserId()));
+  await expect(page.locator('#status')).toContainText('только для чтения');
+  await expect(page.locator('#pilotAccess')).toBeHidden();
+  await expect(page.locator('#claimButton')).toBeDisabled();
 });
