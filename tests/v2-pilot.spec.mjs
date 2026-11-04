@@ -46,6 +46,13 @@ async function prepare(page, request, { bridgeId = 'launch', sdk = 'ok' } = {}) 
         }};`;
     return route.fulfill({ status: 200, contentType: 'application/javascript', body: script });
   });
+  // The real, byte-verified public-domain scans are published separately on
+  // GitHub Pages. An offline-capable image fixture keeps mobile CI deterministic;
+  // the path and 22-card ID mapping are asserted below.
+  await page.route('https://masksimus.github.io/CartTaro/art-preview/classic/**', route =>
+    route.fulfill({status:200,contentType:'image/svg+xml',
+      body:'<svg xmlns="http://www.w3.org/2000/svg" width="720" height="1200"><rect width="720" height="1200" fill="#e8d7bd"/><circle cx="360" cy="440" r="220" fill="#b18563"/></svg>'
+    }));
   await page.route('**/api/v2/**', async route => {
     const upstreamUrl = new URL(route.request().url());
     const authorization = route.request().headers()['authorization'];
@@ -99,6 +106,16 @@ test('REAL POSTGRES local API: verified VK launch, single reward, server daily c
   await expect(page.locator('#unlocked')).toHaveText('1/22');
   await expect(page.locator('#drawButton')).toBeDisabled();
   await expect(page.locator('#collection .arcana.open')).toHaveCount(1);
+  await expect(page.locator('#collection .arcana.open img')).toHaveCount(1);
+  await expect(page.locator('#dailyCardDisplay')).toBeVisible();
+  await expect(page.locator('#dailyCardDisplay img')).toHaveCount(1);
+  const mainPainting = await page.locator('#dailyCardDisplay img').getAttribute('src');
+  expect(mainPainting).toContain('https://masksimus.github.io/CartTaro/art-preview/classic/');
+  expect(mainPainting).toMatch(/\/\d\d_[A-Za-z_]+\.jpg$/);
+  expect(await page.locator('#dailyCardDisplay img').getAttribute('referrerpolicy')).toBe('no-referrer');
+  await expect(page.locator('#dailyCardDisplay img')).toHaveJSProperty('naturalWidth',720);
+  await expect(page.locator('#collection .arcana:not(.open) img')).toHaveCount(0);
+
   await expect(page.locator('#achievements .achievement.done')).toHaveCount(1);
   await expect(page.locator('#missions .mission.done')).toHaveCount(2);
 
@@ -109,6 +126,8 @@ test('REAL POSTGRES local API: verified VK launch, single reward, server daily c
   const json = await state.json();
   expect(json.crystals).toBe(10);
   expect(json.arcana).toHaveLength(1);
+  expect(json.dailyCardId).toBe(json.arcana[0]);
+  expect(mainPainting).toContain((await page.locator('#collection .arcana.open img').getAttribute('src')).split('/').at(-1));
   expect(json.claimedToday).toBe(true);
   const repeat = await request.post(backend + '/api/v2/daily/claim', {
     headers: { Authorization: 'Bearer ' + token, 'X-Taro-Test-Pin': TEST_PIN }
@@ -126,6 +145,11 @@ test('REAL POSTGRES local API: verified VK launch, single reward, server daily c
   // After removing signed parameters, a raw refresh cannot silently log in.
   await page.reload({ waitUntil: 'domcontentloaded' });
   await expect(page.locator('#claimButton')).toBeDisabled();
+  await expect(page.locator('#drawButton')).toBeDisabled();
+  await visit(page,launch(userId));
+  await expect(page.locator('#crystals')).toHaveText('10');
+  await expect(page.locator('#unlocked')).toHaveText('1/22');
+  await expect(page.locator('#dailyCardDisplay img')).toHaveAttribute('src',mainPainting);
   await expect(page.locator('#drawButton')).toBeDisabled();
 });
 
@@ -307,6 +331,10 @@ test('READ-ONLY one card: real signed VK server, flip animation and interpretati
   await expect(page.locator('#spreadOneButton')).toBeEnabled();
   await page.locator('#spreadOneButton').click();
   await expect(page.locator('#readingDeck .reading-card')).toHaveCount(1);
+  await expect(page.locator('#readingDeck .reading-card-front img')).toHaveCount(1);
+  expect(await page.locator('#readingDeck .reading-card-front img').getAttribute('src'))
+    .toMatch(/masksimus\.github\.io\/CartTaro\/art-preview\/classic\/\d\d_.*\.jpg$/);
+
   await expect(page.locator('#readingStatus')).toContainText('Нажмите на рубашку');
   await expect(page.locator('#readingInterpretations article')).toHaveCount(0);
   await page.locator('#readingDeck .reading-card').click();
@@ -334,6 +362,11 @@ test('READ-ONLY three cards: distinct randomized arcana, three semantic position
   await page.locator('#spreadThreeButton').click();
   const cards=page.locator('#readingDeck .reading-card');
   await expect(cards).toHaveCount(3);
+  await expect(page.locator('#readingDeck .reading-card-front img')).toHaveCount(3);
+  const illustrationURLs = await page.locator('#readingDeck .reading-card-front img').evaluateAll(imgs=>imgs.map(img=>img.src));
+  expect(new Set(illustrationURLs).size).toBe(3);
+  expect(illustrationURLs.every(url=>url.startsWith('https://masksimus.github.io/CartTaro/art-preview/classic/'))).toBe(true);
+
   await expect(page.locator('#readingDeck .reading-position')).toHaveText([
     'Что было','Что происходит','Куда направить внимание'
   ]);
