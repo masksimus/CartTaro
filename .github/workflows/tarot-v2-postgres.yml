@@ -1,0 +1,96 @@
+name: CartTaro V2 - PostgreSQL economy & Android E2E
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - feature/tarot-v2-postgres-progression
+    paths:
+      - 'server/src/pg-*.mjs'
+      - 'server/src/api-v2-handler.mjs'
+      - 'server/test/pg-*.mjs'
+      - 'api/v2/**'
+      - 'preview/v2-pilot.*'
+      - 'tests/v2-pilot.spec.mjs'
+      - 'package.json'
+      - '.github/workflows/tarot-v2-postgres.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  postgres:
+    name: Real PostgreSQL transactions, signatures and three Android screens
+    runs-on: ubuntu-24.04
+    timeout-minutes: 18
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: carttaro_ci
+          POSTGRES_USER: tarot_ci
+          POSTGRES_PASSWORD: fixture_for_ci_only
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U tarot_ci -d carttaro_ci"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+    env:
+      PGTEST_URL: postgresql://tarot_ci:fixture_for_ci_only@127.0.0.1:5432/carttaro_ci
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: '24'
+      - name: Install pinned PostgreSQL driver
+        run: npm install --ignore-scripts --no-fund --no-audit
+      - name: Validate runtime syntax
+        run: |
+          node --check server/src/pg-store.mjs
+          node --check server/src/pg-service.mjs
+          node --check server/src/api-v2-handler.mjs
+          node --check server/test/pg-http-fixture.mjs
+          node --check preview/v2-pilot.js
+      - name: Run all node server tests against local Postgres
+        run: node --test --test-reporter=spec server/test/*.test.mjs
+      - name: Install Chromium for real Android-size browser tests
+        working-directory: tests
+        run: |
+          npm install --no-fund --no-audit --ignore-scripts
+          npx playwright install --with-deps chromium
+      - name: Start static frontend and real Postgres API on loopback
+        env:
+          DATABASE_URL: postgresql://tarot_ci:fixture_for_ci_only@127.0.0.1:5432/carttaro_ci
+          VK_PROTECTED_KEY: TARO_E2E_FIXTURE_ONLY_NEVER_PRODUCTION
+          NODE_ENV: test
+          HOST: 127.0.0.1
+          PORT: '8788'
+        run: |
+          set -eu
+          python3 -m http.server 8765 --bind 127.0.0.1 > /tmp/taro-v2-static.log 2>&1 &
+          node server/test/pg-http-fixture.mjs > /tmp/taro-v2-api.log 2>&1 &
+          for i in $(seq 1 35); do
+            if curl -fsS http://127.0.0.1:8765/preview/v2-pilot.html >/dev/null &&
+               curl -fsS http://127.0.0.1:8788/api/v2/status >/dev/null; then exit 0; fi
+            sleep 1
+          done
+          cat /tmp/taro-v2-static.log
+          cat /tmp/taro-v2-api.log
+          exit 1
+      - name: Verify VK signed pilot through real HTTP/Postgres on three mobile viewports
+        working-directory: tests
+        run: npx playwright test --config playwright.config.mjs v2-pilot.spec.mjs
+      - name: Keep mobile QA traces on failures
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: carttaro-v2-postgres-qa
+          retention-days: 7
+          if-no-files-found: warn
+          path: |
+            tests/report/
+            tests/test-results/
