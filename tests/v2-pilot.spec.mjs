@@ -77,7 +77,7 @@ test('REAL POSTGRES local API: verified VK launch, single reward, server daily c
 
   await expect(page.locator('#bridgeStatus')).toContainText('подключён');
   await expect(page.locator('#authStatus')).toContainText('подпись проверена');
-  await expect(page.locator('#status')).toContainText('успешна');
+  await expect(page.locator('#status')).toContainText('Вход подтверждён');
   await expect(page.locator('#pilotAccess')).toBeVisible();
   await expect(page.locator('#claimButton')).toBeDisabled();
   await expect(page.locator('#drawButton')).toBeDisabled();
