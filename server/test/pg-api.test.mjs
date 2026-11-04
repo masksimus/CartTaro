@@ -5,9 +5,11 @@ import { handleV2 } from '../src/api-v2-handler.mjs';
 
 if (!process.env.PGTEST_URL) throw new Error('PGTEST_URL required for real API integration tests');
 const KEY = 'TEST_ONLY_VK_PROTECTED_KEY_NO_USER_SECRETS';
+const PIN = '0123456789abcdef0123456789abcdef';
 process.env.VK_PROTECTED_KEY = KEY;
 process.env.DATABASE_URL = process.env.PGTEST_URL;
 process.env.TARO_V2_WRITES_ENABLED = 'true';
+process.env.TARO_V2_TEST_ACCESS_PIN = PIN;
 
 function signed(userId = '1234567', ts = Math.floor(Date.now()/1000)) {
   const values = new URLSearchParams({
@@ -20,7 +22,7 @@ function signed(userId = '1234567', ts = Math.floor(Date.now()/1000)) {
   return values.toString();
 }
 
-async function req(action, {method,auth,origin='https://tests.example.org',url,body,length} = {}) {
+async function req(action, {method,auth,origin='https://tests.example.org',url,body,length,testPin=PIN} = {}) {
   const path = action === 'claim' || action === 'draw' ?
     '/api/v2/daily/' + action : '/api/v2/' + action;
   const request = {
@@ -28,6 +30,7 @@ async function req(action, {method,auth,origin='https://tests.example.org',url,b
     method: method||(['claim','draw'].includes(action)?'POST':'GET'),
     headers: { host:'tests.example.org', origin,
       ...auth === null ? {} : { authorization: auth || 'Bearer ' + signed() },
+      ...testPin === null ? {} : { 'x-taro-test-pin': testPin },
       ...length !== undefined ? {'content-length':length}: {} },
     body
   };
@@ -45,6 +48,7 @@ test('the public status emits no secret, user IDs or database URL', async () => 
   assert.equal(response.statusCode,200);
   assert.equal(response.data.storageConfigured,true);
   assert.equal(response.data.mode,'developer_pilot');
+  assert.equal(JSON.stringify(response.data).includes(PIN),false);
   assert.equal(JSON.stringify(response.data).includes(KEY),false);
   assert.equal(JSON.stringify(response.data).includes('postgres://'),false);
 });
@@ -113,5 +117,50 @@ test('V2 writes remain blocked without the explicit gate, even when Postgres is 
   } finally {
     if(previous===undefined)delete process.env.TARO_V2_WRITES_ENABLED;
     else process.env.TARO_V2_WRITES_ENABLED=previous;
+  }
+});
+
+
+test('pilot PIN allows non-mutating access check for signed VK launch only', async () => {
+  const good=await req('access');
+  assert.equal(good.statusCode,200);
+  assert.deepEqual(good.data,{authorized:true});
+  const noPin=await req('access',{testPin:null});
+  assert.equal(noPin.statusCode,403);
+  const wrong=await req('access',{testPin:'f'.repeat(32)});
+  assert.equal(wrong.statusCode,403);
+  const invalidHmac=await req('access',{auth:'Bearer forged'});
+  assert.equal(invalidHmac.statusCode,401);
+});
+
+test('wrong or absent tester PIN never grants any balance or card in PostgreSQL', async () => {
+  const id=String(randomInt(500000000,599999999));
+  const auth='Bearer '+signed(id);
+  for(const testPin of [null,'0'.repeat(32),'invalid']) {
+    for(const action of ['claim','draw']) {
+      const result=await req(action,{auth,testPin});
+      assert.equal(result.statusCode,403);
+      assert.deepEqual(result.data,{error:'test_access_denied'});
+    }
+  }
+  const progress=await req('progress',{auth,testPin:null});
+  assert.equal(progress.statusCode,200);
+  assert.equal(progress.data.crystals,0);
+  assert.equal(progress.data.dailyCardDrawn,false);
+  assert.deepEqual(progress.data.arcana,[]);
+});
+
+test('writes remain disabled if developer PIN configuration is absent', async () => {
+  const prior=process.env.TARO_V2_TEST_ACCESS_PIN;
+  delete process.env.TARO_V2_TEST_ACCESS_PIN;
+  try {
+    const state=await req('status',{auth:null,testPin:null});
+    assert.equal(state.data.rewardsEnabled,false);
+    assert.equal(state.data.mode,'read_only');
+    const response=await req('claim');
+    assert.equal(response.statusCode,503);
+    assert.equal(response.data.error,'rewards_disabled');
+  } finally {
+    process.env.TARO_V2_TEST_ACCESS_PIN=prior;
   }
 });
