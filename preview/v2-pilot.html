@@ -4,11 +4,12 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="referrer" content="no-referrer">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' https://unpkg.com; style-src 'self'; img-src 'self' data:; connect-src 'self'; base-uri 'none'; form-action 'none'">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' https://unpkg.com; style-src 'self'; img-src 'self' https://masksimus.github.io data:; connect-src 'self'; base-uri 'none'; form-action 'none'">
   <meta name="robots" content="noindex,nofollow,noarchive">
-  <title>Карты Таро · Postgres V2 тест игрового прогресса</title>
+  <title>Карты Таро · Путь Арканов — классическая колода и прогресс Neon</title>
   <link rel="stylesheet" href="./v2-pilot.css">
   <link rel="stylesheet" href="./v3-spreads.css">
+  <link rel="stylesheet" href="./v4-rws-neon.css">
   <script defer src="https://unpkg.com/@vkontakte/vk-bridge@2.14.0/dist/browser.min.js" referrerpolicy="no-referrer"></script>
   <script defer src="./v2-pilot.js"></script>
 </head>
@@ -47,6 +48,7 @@
         <button type="button" id="drawButton" disabled>Открыть карту дня</button>
       </div>
       <div id="drawResult" class="draw-result" aria-live="polite"></div>
+      <div id="dailyCardDisplay" class="daily-card-display" hidden aria-label="Сохранённая карта дня"></div>
       <p class="hint">Карту и начисления определяет только сервер. Повторное нажатие не создаёт дополнительные награды.</p>
     </section>
     <section class="card reading-room" aria-labelledby="readingTitle" id="readingRoom">
@@ -74,6 +76,7 @@
       <h2 id="achievementsTitle">Достижения</h2>
       <div id="achievements" class="achievements-grid"></div>
     </section>
+    <p class="art-provenance">Оригинальные карты Памелы Колман Смит, 1909 год. Сканы размещены на нашем GitHub Pages; прогресс — в Neon PostgreSQL.</p>
     <footer>Отдельная тестовая база. Настоящие деньги и покупки отключены; данные действующего приложения не переносятся.</footer>
   </main>
 </body>
