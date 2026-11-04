@@ -88,7 +88,7 @@ export function createPgStore({ pool, now = () => Date.now(),
     const claim = await client.query(
       'SELECT 1 FROM tarot_v2_claims WHERE user_id=$1 AND day_utc=$2', [userId, day]);
     const draw = await client.query(
-      'SELECT 1 FROM tarot_v2_daily_cards WHERE user_id=$1 AND day_utc=$2', [userId, day]);
+      'SELECT card_id FROM tarot_v2_daily_cards WHERE user_id=$1 AND day_utc=$2', [userId, day]);
     const cards = await client.query(
       'SELECT card_id FROM tarot_v2_arcana WHERE user_id=$1 ORDER BY card_id', [userId]);
     const row = account.rows[0] || {
@@ -101,7 +101,11 @@ export function createPgStore({ pool, now = () => Date.now(),
     const dailyCardDrawn = draw.rows.length > 0;
     return {
       crystals: row.crystals, streak, totalClaims: row.total_claims,
-      dayUtc: day, claimedToday, dailyCardDrawn, arcana,
+      dayUtc: day, claimedToday, dailyCardDrawn,
+      // Preserve the original server-assigned card across VK app reloads.
+      // Older clients can ignore this new read-only field.
+      dailyCardId: dailyCardDrawn ? draw.rows[0].card_id : null,
+      arcana,
       achievements: {
         firstArcana: arcana.length >= 1,
         fiveArcana: arcana.length >= 5,
