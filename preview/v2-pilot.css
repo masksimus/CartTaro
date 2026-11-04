@@ -73,3 +73,15 @@ footer { padding:15px 10px 5px; text-align:center; color:var(--muted); font-size
 }
 .tester-access button { margin-top: 12px; width: 100%; min-height: 44px; }
 .tester-access .hint { margin: 8px 0; }
+
+/* Read-only Android VK WebView persistence verification. */
+.verify-save {
+  display:block; width:100%; margin-top:12px; min-height:45px; padding:10px 12px;
+  font-size:13px; color:#f9dbad; background:rgba(39,27,54,.92);
+  border:1px solid rgba(236,197,145,.5); border-radius:12px;
+}
+.verify-save:disabled {opacity:.65;}
+.persist-status {font-size:12px; color:#d9cfdf; line-height:1.55; margin:8px 0 0;}
+.persist-status:empty {display:none;}
+.persist-status.good {color:#c7f3da;}
+.persist-status.bad {color:#ffc0b4;}
