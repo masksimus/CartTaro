@@ -5,6 +5,7 @@ on:
   push:
     branches:
       - feature/tarot-v2-postgres-progression
+      - fix/tarot-v2-neon-login-diagnostics
     paths:
       - 'server/src/pg-*.mjs'
       - 'server/src/api-v2-handler.mjs'
