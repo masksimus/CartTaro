@@ -7,6 +7,7 @@ on:
       - feature/tarot-v2-postgres-progression
       - fix/tarot-v2-neon-login-diagnostics
       - feature/tarot-v2-safe-test-rewards
+      - fix/tarot-v2-progress-retry
     paths:
       - 'server/src/pg-*.mjs'
       - 'server/src/api-v2-handler.mjs'
