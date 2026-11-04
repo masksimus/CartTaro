@@ -33,6 +33,13 @@
     </section>
     <section class="card actions" aria-labelledby="actionsTitle">
       <h2 id="actionsTitle">Действия, подтверждаемые сервером</h2>
+      <div class="tester-access" id="pilotAccess" hidden>
+        <p class="hint">Только разработчик: введите одноразово для этой сессии код тестировщика. Код не сохраняется в браузере.</p>
+        <label for="pilotPin">Код тестировщика</label>
+        <input type="password" id="pilotPin" maxlength="32" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="32 символа" aria-describedby="pilotPinNote">
+        <p class="hint" id="pilotPinNote">Не вводите сюда защищённый ключ VK или пароль Neon.</p>
+        <button type="button" id="pilotUnlockButton" disabled>Разрешить тестовые награды</button>
+      </div>
       <div class="action-row">
         <button type="button" id="claimButton" disabled>Получить награду дня</button>
         <button type="button" id="drawButton" disabled>Открыть карту дня</button>
