@@ -90,7 +90,8 @@ try{
     writes:window.__vkWriteCount
   }));
   assert.equal(stored.daily.cardId,8);
-  assert.equal(stored.history[0].cardId,8);
+  assert.ok(stored.history.some(h=>h.type==='daily' && h.cardId===8), 'Previously saved Strength card remains in history');
+  assert.ok(stored.history.some(h=>h.type==='spread'), 'New spread is appended to history');
   assert.ok(stored.writes<=1,'Spread only appends history');
   assert.ok(cardNetwork.every(u=>u.startsWith('http://127.0.0.1:8779/CartTaro/art-preview/classic/')),
     'Third-party image request');
