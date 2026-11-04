@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex,nofollow,noarchive">
+<meta name="referrer" content="no-referrer">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self'; base-uri 'none'; form-action 'none'">
+<title>Карты Таро · проверка VK API</title>
+<link rel="stylesheet" href="./style.css">
+<script defer src="./vk-status.js"></script>
+</head>
+<body>
+<main class="wrap">
+<header class="hero">
+  <div class="eyebrow">✦ Карты Таро · безопасная лаборатория</div>
+  <h1>Готовность входа ВК</h1>
+  <p>Отдельная техническая проверка. <strong>Никаких начислений, раскладов и изменений пользователей.</strong></p>
+</header>
+<section class="card status-card">
+  <h2>Подключение защищённой авторизации</h2>
+  <p id="state" role="status" aria-live="polite">Проверяем состояние API…</p>
+  <p id="hint" class="hint">Ключ ВК никогда не вводится на этой странице и не публикуется в GitHub.</p>
+  <button id="retry" type="button">Повторить проверку</button>
+</section>
+<section class="card">
+  <h2>Что уже работает</h2>
+  <p>Серверная проверка HMAC-подписи запуска ВК, идентификатора приложения и времени запуска. Сервис не принимает баланс и не записывает прогресс.</p>
+</section>
+<section class="card">
+  <h2>Что потребуется дальше</h2>
+  <p>Защищённый ключ ВК в настройках Preview Environment Vercel и открытие отдельного тестового адреса через настройки разработчика ВК. Никогда не пересылайте ключ или подписанную строку запуска в чат.</p>
+</section>
+<footer>Рабочее VK-приложение 54582199 и домен с визуальным демо не изменены.</footer>
+</main>
+</body>
+</html>
