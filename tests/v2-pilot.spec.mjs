@@ -193,3 +193,29 @@ test('V2 database read-only mode renders real progress but keeps both reward act
   expect(progress.status()).toBe(200);
   expect((await progress.json()).crystals).toBe(0);
 });
+
+
+test('Neon unavailable produces visible message and disables both actions, not a forever-spinner', async ({ page, request }) => {
+  const userId=freshUserId();
+  await prepare(page,request);
+  await page.route('**/api/v2/progress',route=>route.fulfill({
+    status:503,contentType:'application/json',body:'{"error":"storage_unavailable"}'
+  }));
+  await visit(page, launch(userId));
+  await expect(page.locator('#bridgeStatus')).toContainText('подключён');
+  await expect(page.locator('#status')).toContainText('Тестовая база данных не подключена или временно недоступна');
+  await expect(page.locator('#claimButton')).toBeDisabled();
+  await expect(page.locator('#drawButton')).toBeDisabled();
+  expect(new URL(page.url()).search).toBe('');
+});
+
+test('expired signed parameters show a recoverable sign-in failure, without user state mutation', async ({ page, request }) => {
+  await prepare(page,request);
+  await page.route('**/api/v2/progress',route=>route.fulfill({
+    status:401,contentType:'application/json',body:'{"error":"unauthorized"}'
+  }));
+  await visit(page,launch(freshUserId()));
+  await expect(page.locator('#status')).toContainText('Сессия ВК не подтверждена или истекла');
+  await expect(page.locator('#claimButton')).toBeDisabled();
+  await expect(page.locator('#drawButton')).toBeDisabled();
+});
