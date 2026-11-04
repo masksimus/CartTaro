@@ -10,7 +10,9 @@ on:
       - 'server/src/auth.mjs'
       - 'server/test/vercel-vk-auth.test.mjs'
       - 'preview/vk-status.*'
+      - 'preview/vk-login.*'
       - 'tests/vk-status.spec.mjs'
+      - 'tests/vk-login.spec.mjs'
       - '.github/workflows/tarot-v2-vk-auth-probe.yml'
 
 permissions:
@@ -31,6 +33,7 @@ jobs:
           node --check api/vk/verify.mjs
           node --check api/vk/status.mjs
           node --check preview/vk-status.js
+          node --check preview/vk-login.js
       - name: Run all secure API and persistence regression tests
         run: node --test --test-reporter=spec server/test/*.test.mjs
 
@@ -59,7 +62,7 @@ jobs:
           exit 1
       - name: Check readiness UI on mobile
         working-directory: tests
-        run: npx playwright test --config playwright.config.mjs vk-status.spec.mjs
+        run: npx playwright test --config playwright.config.mjs vk-status.spec.mjs vk-login.spec.mjs
       - name: Preserve traces
         if: always()
         uses: actions/upload-artifact@v4
