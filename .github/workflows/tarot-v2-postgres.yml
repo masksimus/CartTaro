@@ -8,11 +8,15 @@ on:
       - fix/tarot-v2-neon-login-diagnostics
       - feature/tarot-v2-safe-test-rewards
       - fix/tarot-v2-progress-retry
+      - feature/tarot-v3-interactive-spreads
     paths:
       - 'server/src/pg-*.mjs'
       - 'server/src/api-v2-handler.mjs'
       - 'server/test/pg-*.mjs'
       - 'api/v2/**'
+      - 'server/src/spreads.mjs'
+      - 'server/test/spreads.test.mjs'
+      - 'preview/v3-spreads.css'
       - 'preview/v2-pilot.*'
       - 'tests/v2-pilot.spec.mjs'
       - 'package.json'
