@@ -9,6 +9,7 @@ on:
       - feature/tarot-v2-safe-test-rewards
       - fix/tarot-v2-progress-retry
       - feature/tarot-v3-interactive-spreads
+      - feature/tarot-v4-rws-neon-ui
     paths:
       - 'server/src/pg-*.mjs'
       - 'server/src/api-v2-handler.mjs'
@@ -17,6 +18,7 @@ on:
       - 'server/src/spreads.mjs'
       - 'server/test/spreads.test.mjs'
       - 'preview/v3-spreads.css'
+      - 'preview/v4-rws-neon.css'
       - 'preview/v2-pilot.*'
       - 'tests/v2-pilot.spec.mjs'
       - 'package.json'
@@ -62,6 +64,7 @@ jobs:
           node --check server/src/api-v2-handler.mjs
           node --check server/test/pg-http-fixture.mjs
           node --check preview/v2-pilot.js
+          node --check server/src/spreads.mjs
       - name: Run all node server tests against local Postgres
         run: node --test --test-reporter=spec server/test/*.test.mjs
       - name: Install Chromium for real Android-size browser tests
