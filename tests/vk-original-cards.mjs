@@ -61,7 +61,12 @@ try{
   assert.equal(await page.locator('#cardName').innerText(),'Сила');
   assert.equal(await page.evaluate(()=>window.__vkWriteCount),0);
   await page.locator('.tab').filter({hasText:'История'}).click();
-  await page.locator('#historyList img').first().evaluate(img=>img.decode());
+  await page.locator('#historyList img').first().scrollIntoViewIfNeeded();
+  await page.locator('#historyList img').first().evaluate(img=>{ img.loading='eager'; });
+  await page.waitForFunction(() => {
+    const img=document.querySelector('#historyList img');
+    return !!img && img.complete && img.naturalWidth>=700;
+  }, null, {timeout:15000});
   assert.ok((await page.locator('#historyList img').first().getAttribute('src')).endsWith('08_Strength.jpg'));
   await page.locator('.tab').filter({hasText:'Расклады'}).click();
   await page.locator('.spread-card').first().click();
@@ -69,7 +74,11 @@ try{
   await page.locator('#modalReveal.show').waitFor({state:'visible',timeout:15000});
   const spreadImages=page.locator('#spreadCardsRow .mini-symbol img');
   assert.equal(await spreadImages.count(),3);
-  await spreadImages.evaluateAll(imgs=>Promise.all(imgs.map(img=>img.decode())));
+  await spreadImages.evaluateAll(imgs=>imgs.forEach(img=>{img.loading='eager'}));
+  await page.waitForFunction(() => {
+    const imgs=[...document.querySelectorAll('#spreadCardsRow .mini-symbol img')];
+    return imgs.length===3 && imgs.every(img=>img.complete&&img.naturalWidth>=700);
+  },null,{timeout:15000});
   const all=await spreadImages.evaluateAll(imgs=>imgs.map(img=>({
     src:img.currentSrc,width:img.naturalWidth,fit:getComputedStyle(img).objectFit
   })));
