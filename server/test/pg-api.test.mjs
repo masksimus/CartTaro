@@ -27,7 +27,7 @@ async function req(action, {method,auth,origin='https://tests.example.org',url,b
     '/api/v2/daily/' + action : '/api/v2/' + action;
   const request = {
     url: url||path,
-    method: method||(['claim','draw'].includes(action)?'POST':'GET'),
+    method: method||(['claim','draw','access'].includes(action)?'POST':'GET'),
     headers: { host:'tests.example.org', origin,
       ...auth === null ? {} : { authorization: auth || 'Bearer ' + signed() },
       ...testPin === null ? {} : { 'x-taro-test-pin': testPin },
