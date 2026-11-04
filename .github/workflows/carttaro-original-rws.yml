@@ -1,0 +1,122 @@
+name: CartTaro authentic 1909 RWS cards — tested GitHub Pages preview
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - feature/tarot-original-rws-deck
+    paths:
+      - 'art-preview/index.html'
+      - 'art-preview/tools/install_originals.py'
+      - 'art-preview/tests/originals.mjs'
+      - '.github/workflows/carttaro-original-rws.yml'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: carttaro-original-rws-preview
+  cancel-in-progress: true
+
+jobs:
+  download-verify-release:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 17
+    steps:
+      - name: Checkout isolated feature branch
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          fetch-depth: 1
+
+      - name: Download all 22 unmodified public-domain Rider Waite Smith scans
+        run: python3 art-preview/tools/install_originals.py
+
+      - name: Verify image count, size and original-source file signatures
+        run: |
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          from hashlib import sha256
+          files=json.loads(Path('art-preview/classic/manifest.json').read_text())
+          assert len(files)==22
+          assert len({f['sha256'] for f in files})==22
+          assert sum(f['bytes'] for f in files)<50_000_000
+          for r in files:
+              data=Path('art-preview/classic',r['file']).read_bytes()
+              assert sha256(data).hexdigest()==r['sha256']
+              assert data[:3]==bytes.fromhex('ffd8ff')
+              assert data[-2:]==bytes.fromhex('ffd9')
+          print('Verified 22 distinct JPEGs and byte-identical source fingerprints')
+          PY
+
+      - name: Install browser test environment
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: '24'
+
+      - name: Install Chromium
+        run: |
+          npm install --no-save --no-audit --no-fund --ignore-scripts playwright@1.56.1
+          npx playwright install --with-deps chromium
+
+      - name: Start local preview HTTP server
+        run: |
+          set -eu
+          mkdir -p /tmp/CartTaro
+          ln -s "$GITHUB_WORKSPACE/art-preview" /tmp/CartTaro/art-preview
+          python3 -m http.server 8776 --directory /tmp --bind 127.0.0.1 >/tmp/tarot-original-http.log 2>&1 &
+          for i in $(seq 1 50); do
+            if curl -fsS http://127.0.0.1:8776/CartTaro/art-preview/ >/dev/null; then exit 0; fi
+            sleep 0.25
+          done
+          cat /tmp/tarot-original-http.log
+          exit 1
+
+      - name: Real mobile browser QA — 22 cards, 1/3 spreads, no remote images
+        run: node art-preview/tests/originals.mjs
+
+      - name: Preserve reference QA images
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: rider-waite-smith-1909-preview-QA
+          path: original-*.png
+          if-no-files-found: warn
+          retention-days: 7
+
+      - name: Publish ONLY art-preview to main after all QA passes
+        if: success()
+        run: |
+          set -euo pipefail
+          STAGE="$RUNNER_TEMP/original-rws-preview"
+          mkdir -p "$STAGE"
+          cp art-preview/index.html "$STAGE/index.html"
+          cp art-preview/SOURCES.md "$STAGE/SOURCES.md"
+          cp -a art-preview/classic "$STAGE/classic"
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git fetch origin main
+          git checkout -B publish-rws origin/main
+          # Verified live splash hotfix must remain byte-identical.
+          test "$(git rev-parse HEAD:index.html)" = "bbffc2325f861baeacf1c32ccac7af75bdb3149c"
+
+          mkdir -p art-preview
+          cp "$STAGE/index.html" art-preview/index.html
+          cp "$STAGE/SOURCES.md" art-preview/SOURCES.md
+          cp -a "$STAGE/classic" art-preview/classic
+
+          git add art-preview/index.html art-preview/SOURCES.md art-preview/classic
+          # Guard against any accidental change outside isolated art-preview.
+          while IFS= read -r changed; do
+            case "$changed" in
+              art-preview/*) ;;
+              *) echo "Refusing to publish unexpected file: $changed"; exit 1;;
+            esac
+          done < <(git diff --cached --name-only)
+          if git diff --cached --quiet; then
+            echo "Identical version already published"
+            exit 0
+          fi
+          git commit -m "feat(art-preview): replace vector art with 22 original RWS 1909 card scans"
+          git push origin HEAD:main
