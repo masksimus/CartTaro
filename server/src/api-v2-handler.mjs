@@ -4,6 +4,7 @@
  * Existing /api/vk/verify and published VK app remain unchanged.
  */
 import { verifyVkLaunch, AuthError } from './auth.mjs';
+import { timingSafeEqual } from 'node:crypto';
 import { getPgStore, storageConfigured } from './pg-service.mjs';
 
 const APP_ID = 54582199;
@@ -12,6 +13,19 @@ const json = (res, statusCode, data) => {
   res.setHeader('Content-Type', 'application/json; charset=utf-8');
   return res.end(JSON.stringify(data));
 };
+
+function testPinConfigured() {
+  const configured = process.env.TARO_V2_TEST_ACCESS_PIN;
+  return typeof configured === 'string' && /^[A-Fa-f0-9]{32}$/.test(configured);
+}
+function testPinMatches(input) {
+  if (!testPinConfigured() || typeof input !== 'string' ||
+      !/^[A-Fa-f0-9]{32}$/.test(input)) return false;
+  return timingSafeEqual(
+    Buffer.from(input.toLowerCase(), 'ascii'),
+    Buffer.from(process.env.TARO_V2_TEST_ACCESS_PIN.toLowerCase(), 'ascii')
+  );
+}
 
 function originAllowed(req) {
   const origin = req.headers?.origin;
@@ -31,7 +45,7 @@ export async function handleV2(req, res, action) {
   const expectedMethod = action === 'progress' || action === 'status' ? 'GET' : 'POST';
   res.setHeader('Allow', expectedMethod);
 
-  if (!['progress', 'claim', 'draw', 'status'].includes(action)) {
+  if (!['progress', 'claim', 'draw', 'status', 'access'].includes(action)) {
     return json(res, 404, { error: 'not_found' });
   }
   if (req.method !== expectedMethod) {
@@ -52,7 +66,9 @@ export async function handleV2(req, res, action) {
   }
 
   const storageReadyForRequests = storageConfigured();
-  const writesEnabled = storageReadyForRequests && process.env.TARO_V2_WRITES_ENABLED === 'true';
+  // No global write enable without a second, private developer-only factor.
+  const writesEnabled = storageReadyForRequests &&
+    process.env.TARO_V2_WRITES_ENABLED === 'true' && testPinConfigured();
   if (action === 'status') {
     return json(res, 200, {
       service: 'tarot-v2-postgres',
@@ -84,8 +100,18 @@ export async function handleV2(req, res, action) {
   if (!storageReadyForRequests) {
     return json(res, 503, { error: 'storage_not_configured' });
   }
-  if ((action === 'claim' || action === 'draw') && !writesEnabled) {
+  if ((action === 'claim' || action === 'draw' || action === 'access') && !writesEnabled) {
     return json(res, 503, { error: 'rewards_disabled' });
+  }
+  if (action === 'access' || action === 'claim' || action === 'draw') {
+    // Double gate: authenticated VK launch + invite PIN held only in memory.
+    // No PINs are logged or sent in URLs/bodies/cookies.
+    if (!testPinMatches(req.headers?.['x-taro-test-pin'])) {
+      return json(res, 403, { error: 'test_access_denied' });
+    }
+  }
+  if (action === 'access') {
+    return json(res, 200, { authorized: true });
   }
   try {
     const store = getPgStore();
