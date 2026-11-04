@@ -5,6 +5,7 @@ on:
   push:
     branches:
       - feature/tarot-v2-vk-auth-probe
+      - feature/tarot-v2-vk-webview-uat
     paths:
       - 'api/vk/**'
       - 'server/src/auth.mjs'
