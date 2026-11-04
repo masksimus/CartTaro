@@ -6,6 +6,7 @@
 import { verifyVkLaunch, AuthError } from './auth.mjs';
 import { timingSafeEqual } from 'node:crypto';
 import { getPgStore, storageConfigured } from './pg-service.mjs';
+import { createSpread } from './spreads.mjs';
 
 const APP_ID = 54582199;
 const json = (res, statusCode, data) => {
@@ -42,10 +43,10 @@ export async function handleV2(req, res, action) {
   res.setHeader('X-Content-Type-Options', 'nosniff');
   res.setHeader('Referrer-Policy', 'no-referrer');
   res.setHeader('Vary', 'Origin');
-  const expectedMethod = action === 'progress' || action === 'status' ? 'GET' : 'POST';
+  const expectedMethod = ['progress', 'status', 'spreadOne', 'spreadThree'].includes(action) ? 'GET' : 'POST';
   res.setHeader('Allow', expectedMethod);
 
-  if (!['progress', 'claim', 'draw', 'status', 'access'].includes(action)) {
+  if (!['progress', 'claim', 'draw', 'status', 'access', 'spreadOne', 'spreadThree'].includes(action)) {
     return json(res, 404, { error: 'not_found' });
   }
   if (req.method !== expectedMethod) {
@@ -96,6 +97,15 @@ export async function handleV2(req, res, action) {
   } catch (e) {
     if (e instanceof AuthError) return json(res, 401, { error: 'unauthorized' });
     return json(res, 500, { error: 'internal_error' });
+  }
+  if (action === 'spreadOne' || action === 'spreadThree') {
+    // Read-only, signed VK-only entertainment. No DB writes, no rewards,
+    // no per-user history, no access PIN required for the spread.
+    try {
+      return json(res, 200, createSpread(action === 'spreadOne' ? 1 : 3));
+    } catch {
+      return json(res, 503, { error: 'spread_unavailable' });
+    }
   }
   if (!storageReadyForRequests) {
     return json(res, 503, { error: 'storage_not_configured' });
