@@ -107,6 +107,12 @@ test('REAL POSTGRES local API: verified VK launch, single reward, server daily c
   await expect(page.locator('#drawButton')).toBeDisabled();
   await expect(page.locator('#collection .arcana.open')).toHaveCount(1);
   await expect(page.locator('#collection .arcana.open img')).toHaveCount(1);
+  // Read-only UAT verification must not write another claim or draw.
+  const writeCount = calls.filter(call => /\\/api\\/v2\\/daily\\/(?:claim|draw)$/.test(call.path)).length;
+  await expect(page.locator('#verifyPersistenceButton')).toBeEnabled();
+  await page.locator('#verifyPersistenceButton').click();
+  await expect(page.locator('#persistenceStatus')).toContainText('Сохранение подтверждено сервером');
+  expect(calls.filter(call => /\\/api\\/v2\\/daily\\/(?:claim|draw)$/.test(call.path))).toHaveLength(writeCount);
   await expect(page.locator('#dailyCardDisplay')).toBeVisible();
   await expect(page.locator('#dailyCardDisplay img')).toHaveCount(1);
   const mainPainting = await page.locator('#dailyCardDisplay img').getAttribute('src');
@@ -150,6 +156,8 @@ test('REAL POSTGRES local API: verified VK launch, single reward, server daily c
   await expect(page.locator('#crystals')).toHaveText('10');
   await expect(page.locator('#unlocked')).toHaveText('1/22');
   await expect(page.locator('#dailyCardDisplay img')).toHaveAttribute('src',mainPainting);
+  await page.locator('#verifyPersistenceButton').click();
+  await expect(page.locator('#persistenceStatus')).toContainText('Сохранение подтверждено сервером');
   await expect(page.locator('#drawButton')).toBeDisabled();
 });
 
@@ -404,4 +412,20 @@ test('unverified VK launch has neither playable spreads nor rewards',async({page
   await expect(page.locator('#spreadOneButton')).toBeDisabled();
   await expect(page.locator('#spreadThreeButton')).toBeDisabled();
   expect(calls).toHaveLength(0);
+});
+
+test('read-only server verification fails visibly but preserves previously loaded data', async ({ page, request }) => {
+  await prepare(page, request);
+  await visit(page, launch(freshUserId()));
+  await expect(page.locator('#verifyPersistenceButton')).toBeEnabled();
+  await expect(page.locator('#crystals')).toHaveText('0');
+  await page.route('**/api/v2/progress', route => route.fulfill({
+    status: 503, contentType: 'application/json',
+    body: '{"error":"storage_unavailable"}'
+  }));
+  await page.locator('#verifyPersistenceButton').click();
+  await expect(page.locator('#persistenceStatus')).toContainText('Не удалось проверить сохранение');
+  await expect(page.locator('#crystals')).toHaveText('0');
+  await expect(page.locator('#verifyPersistenceButton')).toBeEnabled();
+  await expect(page.locator('#claimButton')).toBeDisabled();
 });
