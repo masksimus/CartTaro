@@ -345,7 +345,7 @@
   .card-symbol img {
     width: 100%;
     height: 100%;
-    object-fit: cover;
+    object-fit: contain;
     display: block;
   }
   .card-symbol .fallback {
@@ -637,7 +637,7 @@
     flex-shrink: 0;
     overflow: hidden;
   }
-  .history-mini img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .history-mini img { width: 100%; height: 100%; object-fit: contain; display: block; }
 
   .history-info { flex: 1; }
   .history-info .name { font-family: 'Cinzel', serif; color: var(--ivory); font-size: 13px; letter-spacing: 1px; }
@@ -925,7 +925,7 @@
     align-items: center;
     justify-content: center;
   }
-  .mini-symbol img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .mini-symbol img { width: 100%; height: 100%; object-fit: contain; display: block; }
   .mini-symbol .fallback { font-size: 32px; }
 
   .mini-name {
@@ -1061,6 +1061,20 @@
 
   /* Helpers */
   .text-link { color: var(--gold); cursor: pointer; text-decoration: underline; }
+
+  /* Authentic 1909 Rider–Waite–Smith illustrations: show the WHOLE painted card. */
+  .card-front { padding: 12px; }
+  .card-front .card-roman, .card-front .card-divider,
+  .card-front .card-divider-bottom, .card-front .card-name { display:none; }
+  .card-symbol { width:100%; height:100%; margin:0; background:#eee3cc;
+    border-radius:4px; box-shadow:0 0 0 1px rgba(212,175,55,.6); }
+  .card-symbol img, .mini-symbol img, .history-mini img { object-fit:contain; }
+  .mini-symbol { background:#eee3cc; }
+  .history-mini { background:#eee3cc; }
+  @media (prefers-reduced-motion:reduce) {
+    .daily-card-inner { transition:none; }
+    .spread-card-mini { animation-duration:.01ms; animation-delay:0ms; }
+  }
 </style>
 </head>
 <body>
@@ -1300,11 +1314,17 @@ const CONFIG = {
 // ============================================================
 // CARD DATA — все 22 Старших Аркана
 // ============================================================
-// Изображения карт — оригинальная колода Райдера-Уэйта-Смит (общественное достояние)
-// CDN: jsDelivr (работает быстро по всему миру, включая Россию)
-// Если перенесёте картинки в свой репозиторий (см. README "Шаг 8")
-// — замените URL ниже на 'cards/' + String(id).padStart(2,'0') + '.jpg'
-const cardImg = (id) => `https://cdn.jsdelivr.net/npm/tarot-card-img@0.1.0/major/${id}m.jpg`;
+// Исторические изображения (1909) хранятся в этом же репозитории в art-preview/classic.
+// Никаких CDN: работоспособность не зависит от доступа к внешним изображениям.
+// Verified self-hosted 1909 Rider–Waite–Smith paintings; see art-preview/SOURCES.md.
+// The numbered card IDs remain exactly the same: existing VK saved data is not migrated.
+const RWS_CARD_FILES = Object.freeze(["00_Fool.jpg","01_Magician.jpg","02_High_Priestess.jpg","03_Empress.jpg","04_Emperor.jpg","05_Hierophant.jpg","06_Lovers.jpg","07_Chariot.jpg","08_Strength.jpg","09_Hermit.jpg","10_Wheel_of_Fortune.jpg","11_Justice.jpg","12_Hanged_Man.jpg","13_Death.jpg","14_Temperance.jpg","15_Devil.jpg","16_Tower.jpg","17_Star.jpg","18_Moon.jpg","19_Sun.jpg","20_Judgement.jpg","21_World.jpg"]);
+const cardImg = (id) => {
+  if (!Number.isInteger(id) || id < 0 || id >= RWS_CARD_FILES.length) {
+    throw new RangeError('Unknown Arcana ID');
+  }
+  return './art-preview/classic/' + RWS_CARD_FILES[id];
+};
 
 const CARDS = [
   { id: 0,  roman: '0',     name: 'Дурак',          symbol: '🃏', image: cardImg(0),  short: 'Начало пути, новые возможности',     full: 'Сегодня — день для смелых решений. Не бойтесь сделать первый шаг: Вселенная поддержит вас. Откройтесь новому опыту с лёгкостью и доверием.' },
@@ -1541,7 +1561,10 @@ function showCardOnFront(card) {
   const slot = document.getElementById('cardSymbol');
   slot.innerHTML = '';
   const img = new Image();
-  img.alt = card.name;
+  img.alt = 'Оригинальная карта Таро «' + card.name + '», 1909';
+  img.width = 720;
+  img.height = 1200;
+  img.decoding = 'async';
   img.onerror = () => {
     slot.innerHTML = `<span class="fallback">${card.symbol}</span>`;
   };
@@ -1633,7 +1656,7 @@ async function revealSpread() {
     el.innerHTML = `
       <div class="mini-position">${d.pos}</div>
       <div class="mini-symbol">
-        <img src="${d.card.image}" alt="${d.card.name}" onerror="this.outerHTML='<span class=\\'fallback\\'>${d.card.symbol}</span>'">
+        <img src="${d.card.image}" alt="${d.card.name}" loading="lazy" decoding="async" onerror="this.outerHTML='<span class=\\'fallback\\'>${d.card.symbol}</span>'">
       </div>
       <div class="mini-name">${d.card.name}</div>
     `;
@@ -1692,7 +1715,7 @@ function renderHistory() {
       const card = CARDS.find(c => c.id === h.cardId);
       if (!card) return '';
       return `<div class="history-item">
-        <div class="history-mini"><img src="${card.image}" alt="${card.name}" onerror="this.outerHTML='${card.symbol}'"></div>
+        <div class="history-mini"><img src="${card.image}" alt="${card.name}" loading="lazy" decoding="async" onerror="this.outerHTML='${card.symbol}'"></div>
         <div class="history-info">
           <div class="name">${card.name}</div>
           <div class="date">Карта дня · ${h.date}</div>
@@ -1703,7 +1726,7 @@ function renderHistory() {
       const firstCard = h.cards[0] ? CARDS.find(c => c.id === h.cards[0].cardId) : null;
       const symbols = h.cards.map(c => CARDS.find(cc => cc.id === c.cardId)?.symbol || '✦').slice(0, 5).join(' ');
       const thumb = firstCard
-        ? `<img src="${firstCard.image}" alt="${firstCard.name}" onerror="this.outerHTML='${spread?.icon || '✦'}'">`
+        ? `<img src="${firstCard.image}" alt="${firstCard.name}" loading="lazy" decoding="async" onerror="this.outerHTML='${spread?.icon || '✦'}'">`
         : (spread?.icon || '✦');
       return `<div class="history-item">
         <div class="history-mini">${thumb}</div>
@@ -1831,7 +1854,7 @@ async function init() {
     await Bridge.getConfig();
 
     // Preload images in the background. Never gate startup on image servers.
-    CARDS.forEach(c => { const img = new Image(); img.src = c.image; });
+    // Cards load on demand. Never preload all 22 high-quality paintings on mobile.
 
     const consentOk = await checkConsent();
     if (consentOk) {
