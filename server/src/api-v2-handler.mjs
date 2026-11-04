@@ -51,13 +51,15 @@ export async function handleV2(req, res, action) {
     return json(res, 400, { error: 'body_not_allowed' });
   }
 
+  const storageReadyForRequests = storageConfigured();
+  const writesEnabled = storageReadyForRequests && process.env.TARO_V2_WRITES_ENABLED === 'true';
   if (action === 'status') {
     return json(res, 200, {
       service: 'tarot-v2-postgres',
       appId: APP_ID,
-      storageConfigured: storageConfigured(),
-      rewardsEnabled: storageConfigured(),
-      mode: storageConfigured() ? 'developer_pilot' : 'disabled'
+      storageConfigured: storageReadyForRequests,
+      rewardsEnabled: writesEnabled,
+      mode: writesEnabled ? 'developer_pilot' : 'read_only'
     });
   }
 
@@ -79,8 +81,11 @@ export async function handleV2(req, res, action) {
     if (e instanceof AuthError) return json(res, 401, { error: 'unauthorized' });
     return json(res, 500, { error: 'internal_error' });
   }
-  if (!storageConfigured()) {
+  if (!storageReadyForRequests) {
     return json(res, 503, { error: 'storage_not_configured' });
+  }
+  if ((action === 'claim' || action === 'draw') && !writesEnabled) {
+    return json(res, 503, { error: 'rewards_disabled' });
   }
   try {
     const store = getPgStore();
