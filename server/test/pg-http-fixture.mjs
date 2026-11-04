@@ -13,6 +13,7 @@ const mapping = {
   'GET /api/v2/progress': 'progress',
   'POST /api/v2/daily/claim': 'claim',
   'POST /api/v2/daily/draw': 'draw',
+  'POST /api/v2/access': 'access',
   'GET /api/v2/status': 'status'
 };
 const port = Number(process.env.PORT || 8788);
