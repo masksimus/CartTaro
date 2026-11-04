@@ -1342,6 +1342,18 @@ const SPREADS = {
 // ============================================================
 // VK BRIDGE — обёртка с graceful fallback (для тестирования вне VK)
 // ============================================================
+// Bounded VK calls: an unresolved bridge promise must never trap users
+// behind the splash screen. These are timeouts, not data migrations.
+function bridgeWithTimeout(promise, timeoutMs = 3000) {
+  let timer;
+  return Promise.race([
+    Promise.resolve(promise),
+    new Promise((_, reject) => {
+      timer = setTimeout(() => reject(new Error('VK Bridge response timeout')), timeoutMs);
+    })
+  ]).finally(() => clearTimeout(timer));
+}
+
 const Bridge = {
   available: false,
   user: null,
@@ -1352,7 +1364,7 @@ const Bridge = {
       return false;
     }
     try {
-      await vkBridge.send('VKWebAppInit');
+      await bridgeWithTimeout(vkBridge.send('VKWebAppInit'), 3000);
       this.available = true;
       return true;
     } catch (e) {
@@ -1364,18 +1376,18 @@ const Bridge = {
   async getUser() {
     if (!this.available) return null;
     try {
-      this.user = await vkBridge.send('VKWebAppGetUserInfo');
+      this.user = await bridgeWithTimeout(vkBridge.send('VKWebAppGetUserInfo'), 2500);
       return this.user;
     } catch (e) { return null; }
   },
 
   async storageGet(key) {
     if (!this.available) {
-      const v = sessionStorage.getItem('taro_' + key);
-      return v;
+      try { return sessionStorage.getItem('taro_' + key); }
+      catch (e) { return ''; }
     }
     try {
-      const r = await vkBridge.send('VKWebAppStorageGet', { keys: [key] });
+      const r = await bridgeWithTimeout(vkBridge.send('VKWebAppStorageGet', { keys: [key] }), 2500);
       return r.keys[0]?.value || '';
     } catch (e) { return ''; }
   },
@@ -1386,7 +1398,7 @@ const Bridge = {
       return;
     }
     try {
-      await vkBridge.send('VKWebAppStorageSet', { key, value });
+      await bridgeWithTimeout(vkBridge.send('VKWebAppStorageSet', { key, value }), 3500);
     } catch (e) { console.warn('storageSet failed', e); }
   },
 
@@ -1434,7 +1446,7 @@ const Bridge = {
 
   async getConfig() {
     if (!this.available) return { scheme: 'space_gray' };
-    try { return await vkBridge.send('VKWebAppGetConfig'); }
+    try { return await bridgeWithTimeout(vkBridge.send('VKWebAppGetConfig'), 2000); }
     catch(e) { return { scheme: 'space_gray' }; }
   }
 };
@@ -1806,31 +1818,42 @@ if (typeof vkBridge !== 'undefined') {
 // ============================================================
 // INIT
 // ============================================================
+function hideStartupSplash() {
+  const splash = document.getElementById('splash');
+  if (!splash || splash.classList.contains('hide')) return;
+  splash.classList.add('hide');
+  setTimeout(() => splash.remove(), 600);
+}
+
 async function init() {
-  await Bridge.init();
-  await Bridge.getConfig();
+  try {
+    await Bridge.init();
+    await Bridge.getConfig();
 
-  // Прелоад изображений карт в фоне для плавной анимации
-  CARDS.forEach(c => { const img = new Image(); img.src = c.image; });
+    // Preload images in the background. Never gate startup on image servers.
+    CARDS.forEach(c => { const img = new Image(); img.src = c.image; });
 
-  const consentOk = await checkConsent();
-  if (consentOk) {
-    document.getElementById('mainApp').style.display = '';
+    const consentOk = await checkConsent();
+    if (consentOk) {
+      document.getElementById('mainApp').style.display = '';
+    }
+
+    const user = await Bridge.getUser();
+    if (user?.first_name) {
+      document.getElementById('greeting').textContent = `Здравствуйте, ${user.first_name}`;
+    }
+
+    await loadHistory();
+    await loadDailyCard();
+  } catch (error) {
+    console.warn('CartTaro startup recovered from an error', error);
+    // Fail visibly, never silently discard/replace saved VK data.
+    document.getElementById('consentScreen').classList.add('show');
+    document.getElementById('mainApp').style.display = 'none';
+  } finally {
+    // Even if user info/storage is unavailable, never keep the splash forever.
+    setTimeout(hideStartupSplash, 300);
   }
-
-  const user = await Bridge.getUser();
-  if (user?.first_name) {
-    document.getElementById('greeting').textContent = `Здравствуйте, ${user.first_name}`;
-  }
-
-  await loadHistory();
-  await loadDailyCard();
-
-  // Скрываем splash
-  setTimeout(() => {
-    document.getElementById('splash').classList.add('hide');
-    setTimeout(() => document.getElementById('splash').remove(), 600);
-  }, 800);
 }
 
 document.addEventListener('DOMContentLoaded', init);
