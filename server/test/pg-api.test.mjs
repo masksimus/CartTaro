@@ -7,6 +7,7 @@ if (!process.env.PGTEST_URL) throw new Error('PGTEST_URL required for real API i
 const KEY = 'TEST_ONLY_VK_PROTECTED_KEY_NO_USER_SECRETS';
 process.env.VK_PROTECTED_KEY = KEY;
 process.env.DATABASE_URL = process.env.PGTEST_URL;
+process.env.TARO_V2_WRITES_ENABLED = 'true';
 
 function signed(userId = '1234567', ts = Math.floor(Date.now()/1000)) {
   const values = new URLSearchParams({
