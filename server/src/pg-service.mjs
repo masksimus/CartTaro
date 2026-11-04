@@ -20,7 +20,9 @@ export function getPgStore() {
     const pool = new pg.Pool({
       connectionString: process.env.DATABASE_URL,
       max: 3,
-      connectionTimeoutMillis: 6000,
+      connectionTimeoutMillis: 8500,
+      query_timeout: 11000,
+      statement_timeout: 9000,
       idleTimeoutMillis: 20000,
       allowExitOnIdle: true
     });
