@@ -19,12 +19,14 @@ try{
   // runtime assertions on early-aborted streaming responses.
   await sleep(850);
   browser=await chromium.launch({headless:true,args:['--no-sandbox']});
-  for(const [scenario,vkScript] of [
-    ['external-vk-blocked',null],
-    ['vk-init-never-resolves',"window.vkBridge={send:function(method){if(method==='VKWebAppInit')return new Promise(()=>{});if(method==='VKWebAppStorageGet')return Promise.resolve({keys:[{value:'1'}]});return Promise.resolve({});},subscribe:function(){}};"]
+  for(const [scenario,vkScript,existingConsent] of [
+    ['external-vk-blocked',null,false],
+    ['external-vk-blocked-after-consent',null,true],
+    ['vk-init-never-resolves',"window.vkBridge={send:function(method){if(method==='VKWebAppInit')return new Promise(()=>{});if(method==='VKWebAppStorageGet')return Promise.resolve({keys:[{value:'1'}]});return Promise.resolve({});},subscribe:function(){}};",true],
+    ['vk-normal',"window.vkBridge={send:function(method){if(method==='VKWebAppStorageGet')return Promise.resolve({keys:[{value:'1'}]});if(method==='VKWebAppGetUserInfo')return Promise.resolve({first_name:'QA'});return Promise.resolve({});},subscribe:function(){}};",false]
   ]){
     const ctx=await browser.newContext({viewport:{width:393,height:852},isMobile:true,hasTouch:true});
-    await ctx.addInitScript(()=>localStorage.setItem('taro_consent','1'));
+    if(existingConsent)await ctx.addInitScript(()=>sessionStorage.setItem('taro_consent','1'));
     const p=await ctx.newPage();
     const errs=[];
     p.on('pageerror',e=>errs.push(e.message));
@@ -44,6 +46,7 @@ try{
     console.log(JSON.stringify({scenario,state,errors:errs.slice(0,8)}));
     assert.equal(state.splash,false,scenario+' stuck on splash');
     assert.ok(state.main!== 'none' || state.consent,scenario+' shows neither game nor consent');
+    if (existingConsent || scenario === 'vk-normal') assert.notEqual(state.main,'none',scenario+' should render previously authorized game');
     await ctx.close();
   }
 }finally{
