@@ -164,3 +164,37 @@ test('writes remain disabled if developer PIN configuration is absent', async ()
     process.env.TARO_V2_TEST_ACCESS_PIN=prior;
   }
 });
+
+
+test('signed free tarot spreads are server-randomized and NEVER change existing daily economy', async () => {
+  const id=String(randomInt(600000000,699999999));
+  const auth='Bearer '+signed(id);
+  const before=await req('progress',{auth,testPin:null});
+  assert.equal(before.statusCode,200);
+  assert.equal(before.data.crystals,0);
+  const one=await req('spreadOne',{url:'/api/v2/spreads/one',auth,testPin:null});
+  const three=await req('spreadThree',{url:'/api/v2/spreads/three',auth,testPin:null});
+  assert.equal(one.statusCode,200);
+  assert.equal(three.statusCode,200);
+  assert.equal(one.data.kind,'one');
+  assert.equal(one.data.cards.length,1);
+  assert.equal(three.data.kind,'three');
+  assert.equal(three.data.cards.length,3);
+  assert.equal(new Set(three.data.cards.map(x=>x.id)).size,3);
+  assert.ok(one.data.cards.every(x=>x.meaning&&x.advice));
+  assert.equal(Object.hasOwn(one.data,'userId'),false);
+  assert.equal(Object.hasOwn(three.data,'crystals'),false);
+  const after=await req('progress',{auth,testPin:null});
+  assert.deepEqual(after.data,before.data);
+});
+test('spreads fail closed on invalid HMAC/expired session/wrong origin and method',async()=>{
+  const variants=[
+    [req('spreadOne',{url:'/api/v2/spreads/one',auth:null,testPin:null}),401],
+    [req('spreadOne',{url:'/api/v2/spreads/one',auth:'Bearer forged',testPin:null}),401],
+    [req('spreadThree',{url:'/api/v2/spreads/three',auth:'Bearer '+signed('5556',Math.floor(Date.now()/1000)-3600)}),401],
+    [req('spreadThree',{url:'/api/v2/spreads/three',origin:'https://other.example.net'}),403],
+    [req('spreadThree',{url:'/api/v2/spreads/three',method:'POST'}),405],
+    [req('spreadOne',{url:'/api/v2/spreads/one?client_card=21'}),400]
+  ];
+  for(const [r,expected] of variants)assert.equal((await r).statusCode,expected);
+});
