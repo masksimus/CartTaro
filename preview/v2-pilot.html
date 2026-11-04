@@ -8,6 +8,7 @@
   <meta name="robots" content="noindex,nofollow,noarchive">
   <title>Карты Таро · Postgres V2 тест игрового прогресса</title>
   <link rel="stylesheet" href="./v2-pilot.css">
+  <link rel="stylesheet" href="./v3-spreads.css">
   <script defer src="https://unpkg.com/@vkontakte/vk-bridge@2.14.0/dist/browser.min.js" referrerpolicy="no-referrer"></script>
   <script defer src="./v2-pilot.js"></script>
 </head>
@@ -47,6 +48,19 @@
       </div>
       <div id="drawResult" class="draw-result" aria-live="polite"></div>
       <p class="hint">Карту и начисления определяет только сервер. Повторное нажатие не создаёт дополнительные награды.</p>
+    </section>
+    <section class="card reading-room" aria-labelledby="readingTitle" id="readingRoom">
+      <div class="reading-seal">Зал раскладов</div>
+      <h2 id="readingTitle">Ваши карты сегодня</h2>
+      <p class="reading-intro">Задайте себе вопрос. Откройте одну карту для главной темы или три — для взгляда на путь от прошлого к следующему шагу.</p>
+      <div class="reading-controls" role="group" aria-label="Выберите расклад">
+        <button id="spreadOneButton" type="button" disabled aria-pressed="false">✦ Одна карта</button>
+        <button id="spreadThreeButton" type="button" disabled aria-pressed="false">✧ Три карты</button>
+      </div>
+      <p id="readingStatus" class="reading-status" role="status" aria-live="polite">Подключаемся к ВК для расклада…</p>
+      <div id="readingDeck" class="reading-deck" role="list" aria-label="Карты расклада"></div>
+      <div id="readingInterpretations" class="reading-interpretations" aria-live="polite"></div>
+      <p class="reading-note">Расклады бесплатны и не начисляют кристаллы. Карты помогают размышлять, но не предсказывают будущее.</p>
     </section>
     <section class="card tasks" aria-labelledby="tasksTitle">
       <h2 id="tasksTitle">Дела дня · UTC</h2>
