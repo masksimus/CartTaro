@@ -1,0 +1,156 @@
+[
+  {
+    "number": 0,
+    "file": "00_Fool.jpg",
+    "bytes": 265857,
+    "sha256": "e408ab3dc880a145259deafa65f50a38d401e071af338797e835b392d367f140",
+    "source_url": "https://raw.githubusercontent.com/mixvlad/TarotCards/main/tarot/rider-waite/720px/00_Fool.jpg"
+  },
+  {
+    "number": 1,
+    "file": "01_Magician.jpg",
+    "bytes": 266365,
+    "sha256": "8f12da1eacda2e0e9cc2ccf4aa81da6ff126b3c0046a0f1c36dbe2017ffe5ca5",
+    "source_url": "https://raw.githubusercontent.com/mixvlad/TarotCards/main/tarot/rider-waite/720px/01_Magician.jpg"
+  },
+  {
+    "number": 2,
+    "file": "02_High_Priestess.jpg",
+    "bytes": 288412,
+    "sha256": "74452c448a00b910679bad9a12ffc8a606c4481ad1b1fb5c1f4379218f1fd910",
+    "source_url": "https://raw.githubusercontent.com/mixvlad/TarotCards/main/tarot/rider-waite/720px/02_High_Priestess.jpg"
+  },
+  {
+    "number": 3,
+    "file": "03_Empress.jpg",
+    "bytes": 336738,
+    "sha256": "62983bf3c7d4c55d4ee9f17c537f2745119d3d467f1fc0eac69f02ecff26793e",
+    "source_url": "https://raw.githubusercontent.com/mixvlad/TarotCards/main/tarot/rider-waite/720px/03_Empress.jpg"
+  },
+  {
+    "number": 4,
+    "file": "04_Emperor.jpg",
+    "bytes": 328283,
+    "sha256": "699e4e33d78ea8f514a93b67bac23e448200b6300b13e4cac9b3fbbabc5064eb",
+    "source_url": "https://raw.githubusercontent.com/mixvlad/TarotCards/main/tarot/rider-waite/720px/04_Emperor.jpg"
+  },
+  {
+    "number": 5,
+    "file": "05_Hierophant.jpg",
+    "bytes": 317621,
+    "sha256": "6c69d7e56f40b45dcdcf4a18379ac0005f7cb1d7efb4194a533b2fd241acd55d",
+    "source_url": "https://raw.githubusercontent.com/mixvlad/TarotCards/main/tarot/rider-waite/720px/05_Hierophant.jpg"
+  },
+  {
+    "number": 6,
+    "file": "06_Lovers.jpg",
+    "bytes": 349015,
+    "sha256": "4f0ca99bdec7368a0359caf726fa7c2b85b67aa84783bbf03ffc7aaa8279fab6",
+    "source_url": "https://raw.githubusercontent.com/mixvlad/TarotCards/main/tarot/rider-waite/720px/06_Lovers.jpg"
+  },
+  {
+    "number": 7,
+    "file": "07_Chariot.jpg",
+    "bytes": 304286,
+    "sha256": "005b3487b0f54e1badcb3732bba00dc1068046893d2e420b48f64bd370c68c86",
+    "source_url": "https://raw.githubusercontent.com/mixvlad/TarotCards/main/tarot/rider-waite/720px/07_Chariot.jpg"
+  },
+  {
+    "number": 8,
+    "file": "08_Strength.jpg",
+    "bytes": 257176,
+    "sha256": "39d60e5e4d4fd3f673b82cdfd1623bf9ba3c53f213b957d98e7f1028abf59547",
+    "source_url": "https://raw.githubusercontent.com/mixvlad/TarotCards/main/tarot/rider-waite/720px/08_Strength.jpg"
+  },
+  {
+    "number": 9,
+    "file": "09_Hermit.jpg",
+    "bytes": 186693,
+    "sha256": "f2fe29491934c1b4ef5f2e259d82bd5009a6f24b5e461dd4f4694a39c5baf53e",
+    "source_url": "https://raw.githubusercontent.com/mixvlad/TarotCards/main/tarot/rider-waite/720px/09_Hermit.jpg"
+  },
+  {
+    "number": 10,
+    "file": "10_Wheel_of_Fortune.jpg",
+    "bytes": 310812,
+    "sha256": "7e6e184d7e11892de50a9bfe9811a396aaaa053b03bac7db4f29c7b72e7d18d9",
+    "source_url": "https://raw.githubusercontent.com/mixvlad/TarotCards/main/tarot/rider-waite/720px/10_Wheel_of_Fortune.jpg"
+  },
+  {
+    "number": 11,
+    "file": "11_Justice.jpg",
+    "bytes": 305189,
+    "sha256": "e655bf03c319c4a69ea3613d13056248a660e11c4cee9379b4889cf2660499d5",
+    "source_url": "https://raw.githubusercontent.com/mixvlad/TarotCards/main/tarot/rider-waite/720px/11_Justice.jpg"
+  },
+  {
+    "number": 12,
+    "file": "12_Hanged_Man.jpg",
+    "bytes": 270785,
+    "sha256": "ce4f6e2ea137dd6bf1f6c656c4289c4a960cd4ebd28be6e2c041a85c96b5ea43",
+    "source_url": "https://raw.githubusercontent.com/mixvlad/TarotCards/main/tarot/rider-waite/720px/12_Hanged_Man.jpg"
+  },
+  {
+    "number": 13,
+    "file": "13_Death.jpg",
+    "bytes": 329074,
+    "sha256": "dfd96aafee674956006fc2511aef3b3b331f0644e5223a414e70188ab506ec38",
+    "source_url": "https://raw.githubusercontent.com/mixvlad/TarotCards/main/tarot/rider-waite/720px/13_Death.jpg"
+  },
+  {
+    "number": 14,
+    "file": "14_Temperance.jpg",
+    "bytes": 343595,
+    "sha256": "2c786606f320907b717f122a81fd6ef30eae6b9d08de07f46d10f7a4346e842e",
+    "source_url": "https://raw.githubusercontent.com/mixvlad/TarotCards/main/tarot/rider-waite/720px/14_Temperance.jpg"
+  },
+  {
+    "number": 15,
+    "file": "15_Devil.jpg",
+    "bytes": 243760,
+    "sha256": "b2199858b7640237dd66fab890320cba61b4a0c15cd9d719220575710d3c5458",
+    "source_url": "https://raw.githubusercontent.com/mixvlad/TarotCards/main/tarot/rider-waite/720px/15_Devil.jpg"
+  },
+  {
+    "number": 16,
+    "file": "16_Tower.jpg",
+    "bytes": 228184,
+    "sha256": "c27e09bb3edd033bdf5a997e77725fe81a39875ee3a2f90b12ba2eca472a5c9e",
+    "source_url": "https://raw.githubusercontent.com/mixvlad/TarotCards/main/tarot/rider-waite/720px/16_Tower.jpg"
+  },
+  {
+    "number": 17,
+    "file": "17_Star.jpg",
+    "bytes": 281514,
+    "sha256": "7726956045da8ea196cf8f77798eccf6f6d525e4fcdf3425eec761a8886d9aed",
+    "source_url": "https://raw.githubusercontent.com/mixvlad/TarotCards/main/tarot/rider-waite/720px/17_Star.jpg"
+  },
+  {
+    "number": 18,
+    "file": "18_Moon.jpg",
+    "bytes": 284800,
+    "sha256": "9d0874a70dc6ea796a5633256189868205893798c9f9070aaee332f4543a7ae9",
+    "source_url": "https://raw.githubusercontent.com/mixvlad/TarotCards/main/tarot/rider-waite/720px/18_Moon.jpg"
+  },
+  {
+    "number": 19,
+    "file": "19_Sun.jpg",
+    "bytes": 325580,
+    "sha256": "74711a3be3b87edd55a9aabde2ddd165a2ad633c071bd64c8d0a1f579b341023",
+    "source_url": "https://raw.githubusercontent.com/mixvlad/TarotCards/main/tarot/rider-waite/720px/19_Sun.jpg"
+  },
+  {
+    "number": 20,
+    "file": "20_Judgement.jpg",
+    "bytes": 323313,
+    "sha256": "b8e31dd96778b4a1fd8288724376d5b346bf21e0b57c68f4054701d78f718936",
+    "source_url": "https://raw.githubusercontent.com/mixvlad/TarotCards/main/tarot/rider-waite/720px/20_Judgement.jpg"
+  },
+  {
+    "number": 21,
+    "file": "21_World.jpg",
+    "bytes": 312842,
+    "sha256": "13ec08002aab6d27d523ba14657d3f0116b440de9c4fadbc1fe50674391fac9b",
+    "source_url": "https://raw.githubusercontent.com/mixvlad/TarotCards/main/tarot/rider-waite/720px/21_World.jpg"
+  }
+]
