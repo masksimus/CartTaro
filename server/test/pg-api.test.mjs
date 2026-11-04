@@ -67,6 +67,7 @@ test('real HMAC + Postgres API only grants one reward and one card per day', asy
   const draw=await req('draw',{auth:bearer});
   assert.equal(draw.statusCode,200);
   assert.equal(draw.data.isNew,true);
+  assert.equal(draw.data.progress.dailyCardId,draw.data.cardId);
   const repeatDraw=await req('draw',{auth:bearer});
   assert.equal(repeatDraw.statusCode,200);
   assert.equal(repeatDraw.data.isNew,false);
@@ -76,6 +77,8 @@ test('real HMAC + Postgres API only grants one reward and one card per day', asy
   assert.equal(progress.data.crystals,10);
   assert.equal(progress.data.totalClaims,1);
   assert.equal(progress.data.arcana.length,1);
+  assert.equal(progress.data.dailyCardId,draw.data.cardId);
+  assert.equal(progress.data.dailyCardDrawn,true);
   assert.equal(progress.data.dayUtc,new Date().toISOString().slice(0,10));
 });
 
@@ -114,6 +117,7 @@ test('V2 writes remain blocked without the explicit gate, even when Postgres is 
     const progress=await req('progress',{auth:token});
     assert.equal(progress.statusCode,200);
     assert.equal(progress.data.crystals,0);
+    assert.equal(progress.data.dailyCardId,null);
   } finally {
     if(previous===undefined)delete process.env.TARO_V2_WRITES_ENABLED;
     else process.env.TARO_V2_WRITES_ENABLED=previous;
@@ -172,6 +176,7 @@ test('signed free tarot spreads are server-randomized and NEVER change existing 
   const before=await req('progress',{auth,testPin:null});
   assert.equal(before.statusCode,200);
   assert.equal(before.data.crystals,0);
+  assert.equal(before.data.dailyCardId,null);
   const one=await req('spreadOne',{url:'/api/v2/spreads/one',auth,testPin:null});
   const three=await req('spreadThree',{url:'/api/v2/spreads/three',auth,testPin:null});
   assert.equal(one.statusCode,200);
