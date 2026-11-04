@@ -25,6 +25,8 @@
   let active = false;
   let busy = false;
   let writesEnabled = false;
+  let testPin = null;
+  let isUnlocked = false;
   let profileId = null;
   let progress = null;
 
@@ -138,8 +140,8 @@
     drawCollection(data.arcana);
     drawMissions(data.missions);
     drawAchievements(data.achievements);
-    $('claimButton').disabled = !active || !writesEnabled || busy || data.claimedToday === true;
-    $('drawButton').disabled = !active || !writesEnabled || busy || data.dailyCardDrawn === true;
+    $('claimButton').disabled = !active || !writesEnabled || !isUnlocked || busy || data.claimedToday === true;
+    $('drawButton').disabled = !active || !writesEnabled || !isUnlocked || busy || data.dailyCardDrawn === true;
   }
 
   async function request(endpoint, method = 'GET') {
@@ -152,7 +154,10 @@
     try {
       response = await fetch(api + endpoint, {
         method,
-        headers: { Authorization: 'Bearer ' + bearer },
+        headers: {
+          Authorization: 'Bearer ' + bearer,
+          ...(method === 'POST' && testPin ? { 'X-Taro-Test-Pin': testPin } : {})
+        },
         cache: 'no-store',
         credentials: 'omit',
         redirect: 'error',
@@ -178,6 +183,7 @@
     if (e?.message === 'expired_or_invalid') return 'Сессия ВК не подтверждена или истекла. Откройте тестовую страницу заново внутри ВК.';
     if (e?.message === 'rate_limited') return 'Слишком много запросов. Повторите попытку позже.';
     if (e?.message === 'server_timeout') return 'Сервер не ответил за 14 секунд. Проверьте подключение Neon и откройте приложение через ВК заново.';
+    if (e?.status === 403) return 'Код тестировщика не принят. Проверьте код и попробуйте снова.';
     if (e?.status === 503) return 'Тестовая база данных не подключена или временно недоступна. Прогресс не меняется.';
     if (e?.message === 'invalid_response') return 'Сервер вернул данные неверного формата.';
     return 'Нет связи с сервером. Проверьте подключение и повторно откройте тестовую страницу.';
@@ -187,6 +193,11 @@
     active = false;
     busy = false;
     writesEnabled = false;
+    isUnlocked = false;
+    testPin = null;
+    $('pilotPin').value = '';
+    $('pilotAccess').hidden = true;
+    $('pilotUnlockButton').disabled = true;
     bearer = null;
     $('claimButton').disabled = true;
     $('drawButton').disabled = true;
@@ -195,7 +206,7 @@
   }
 
   async function action(which) {
-    if (!active || !writesEnabled || busy || !bearer || !progress) return;
+    if (!active || !writesEnabled || !isUnlocked || busy || !bearer || !progress) return;
     if ((which === 'claim' && progress.claimedToday) ||
         (which === 'draw' && progress.dailyCardDrawn)) return;
     busy = true;
@@ -216,6 +227,13 @@
       showProgress(result.progress);
     } catch (e) {
       if (e.status === 401) return stop(messageForError(e));
+      if (e.status === 403) {
+        testPin = null;
+        isUnlocked = false;
+        $('pilotAccess').hidden = false;
+        $('pilotPin').value = '';
+        $('pilotUnlockButton').disabled = false;
+      }
       setStatus(messageForError(e), 'bad');
     } finally {
       busy = false;
@@ -280,8 +298,10 @@
       active = true;
       showProgress(data);
       setChip('authStatus', 'Сервер: подпись проверена', 'good');
+      $('pilotAccess').hidden = !writesEnabled;
+      $('pilotUnlockButton').disabled = !writesEnabled;
       setStatus(writesEnabled ?
-        'Проверка пользователя и серверного прогресса успешна.' :
+        'Вход подтверждён. Для тестовых наград введите код тестировщика ниже.' :
         'Вход подтверждён. Прогресс доступен только для чтения; начисления отключены.', 'good');
       // Signed parameters remain only in memory during this short-lived session.
     } catch (e) {
@@ -289,6 +309,37 @@
     }
   }
 
+  async function unlockTester() {
+    if (!active || !writesEnabled || busy || !bearer || isUnlocked) return;
+    const candidate = $('pilotPin').value.trim();
+    if (!/^[a-fA-F0-9]{32}$/.test(candidate)) {
+      setStatus('Код тестировщика должен содержать 32 символа.', 'bad');
+      return;
+    }
+    busy = true;
+    testPin = candidate;
+    $('pilotUnlockButton').disabled = true;
+    setStatus('Проверяем код тестировщика…');
+    try {
+      const response = await request('/access', 'POST');
+      if (response?.authorized !== true) throw new Error('invalid_response');
+      isUnlocked = true;
+      $('pilotPin').value = '';
+      $('pilotAccess').hidden = true;
+      setStatus('Тестовый доступ подтверждён. Можно получить одну награду и одну карту за сутки.', 'good');
+    } catch (e) {
+      testPin = null;
+      isUnlocked = false;
+      if (e.status === 401) return stop(messageForError(e));
+      $('pilotPin').value = '';
+      setStatus(messageForError(e), 'bad');
+    } finally {
+      busy = false;
+      $('pilotUnlockButton').disabled = !active || !writesEnabled || isUnlocked;
+      if (active && progress) showProgress(progress);
+    }
+  }
+  $('pilotUnlockButton').addEventListener('click', () => { void unlockTester(); });
   $('claimButton').addEventListener('click', () => { void action('claim'); });
   $('drawButton').addEventListener('click', () => { void action('draw'); });
   void boot();
