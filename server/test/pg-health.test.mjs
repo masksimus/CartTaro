@@ -20,6 +20,7 @@ test('health probe tests real SQL connection and isolated schema without exposin
   assert.equal(res.statusCode, 200);
   assert.equal(res.body.service, 'tarot-v2-postgres');
   assert.equal(res.body.ready, true);
+  assert.equal(res.body.progressReadReady, true);
   assert.equal(res.body.database, 'connected');
   assert.equal(res.body.rewardsEnabled, false);
   assert.equal(JSON.stringify(res.body).includes('postgresql://'), false);
@@ -40,6 +41,7 @@ test('without database URL, health fails closed, no fake ready status', async ()
     const res=await request();
     assert.equal(res.statusCode,503);
     assert.equal(res.body.ready,false);
+    assert.equal(res.body.progressReadReady,false);
     assert.equal(res.body.database,'not_configured');
   } finally {
     process.env.DATABASE_URL=orig;
