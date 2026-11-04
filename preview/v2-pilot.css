@@ -54,3 +54,22 @@ button:disabled { cursor:not-allowed; opacity:1; color:#dfd4e3; background:rgba(
 footer { padding:15px 10px 5px; text-align:center; color:var(--muted); font-size:12px; line-height:1.5; }
 @media(max-width:345px) { .wrap { padding-inline:10px; } .status-card,.actions,.tasks,.collection,.achievements { padding:13px 10px; } .action-row { grid-template-columns:1fr; } .arcana { min-height:76px; padding:9px 3px; } .arcana .name { font-size:10px; } }
 @media(prefers-reduced-motion:reduce) { *,*::before,*::after { animation:none!important; transition:none!important; } }
+
+
+/* Explicitly honor hidden on tester gate regardless of layout rules. */
+[hidden] { display: none !important; }
+.tester-access {
+  border: 1px solid rgba(234, 195, 141, .42);
+  border-radius: 14px;
+  padding: 15px;
+  margin: 12px 0 18px;
+  background: rgba(255, 255, 255, .045);
+}
+.tester-access label { display:block; margin: 8px 0; font-weight: 600; }
+.tester-access input {
+  box-sizing: border-box; width: 100%; padding: 12px;
+  background: #241b35; color: #fff; border: 1px solid #a18caa;
+  border-radius: 10px; font-size: 16px;
+}
+.tester-access button { margin-top: 12px; width: 100%; min-height: 44px; }
+.tester-access .hint { margin: 8px 0; }
