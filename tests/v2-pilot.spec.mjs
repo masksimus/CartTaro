@@ -162,3 +162,34 @@ test('expired signed launch is rejected by server, never falls back to local bal
   await expect(page.locator('#claimButton')).toBeDisabled();
   expect(calls.some(x => x.status === 401)).toBe(true);
 });
+
+
+test('V2 database read-only mode renders real progress but keeps both reward actions disabled', async ({ page, request }) => {
+  const userId = freshUserId();
+  const calls = await prepare(page, request);
+  await page.route('**/api/v2/status', route => route.fulfill({
+    status: 200,
+    contentType: 'application/json',
+    body: JSON.stringify({
+      service: 'tarot-v2-postgres',
+      appId: 54582199,
+      storageConfigured: true,
+      rewardsEnabled: false,
+      mode: 'read_only'
+    })
+  }));
+  await visit(page, launch(userId));
+  await expect(page.locator('#bridgeStatus')).toContainText('подключён');
+  await expect(page.locator('#authStatus')).toContainText('подпись проверена');
+  await expect(page.locator('#status')).toContainText('только для чтения');
+  await expect(page.locator('#claimButton')).toBeDisabled();
+  await expect(page.locator('#drawButton')).toBeDisabled();
+  await expect(page.locator('#crystals')).toHaveText('0');
+  await expect(page.locator('#unlocked')).toHaveText('0/22');
+  expect(calls.filter(x => x.path.includes('/daily/'))).toHaveLength(0);
+  const progress = await request.get(backend + '/api/v2/progress', {
+    headers: { Authorization: 'Bearer ' + launch(userId) }
+  });
+  expect(progress.status()).toBe(200);
+  expect((await progress.json()).crystals).toBe(0);
+});
