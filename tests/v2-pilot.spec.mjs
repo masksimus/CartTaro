@@ -108,11 +108,11 @@ test('REAL POSTGRES local API: verified VK launch, single reward, server daily c
   await expect(page.locator('#collection .arcana.open')).toHaveCount(1);
   await expect(page.locator('#collection .arcana.open img')).toHaveCount(1);
   // Read-only UAT verification must not write another claim or draw.
-  const writeCount = calls.filter(call => /\\/api\\/v2\\/daily\\/(?:claim|draw)$/.test(call.path)).length;
+  const writeCount = calls.filter(call => (call.path === '/api/v2/daily/claim' || call.path === '/api/v2/daily/draw').test(call.path)).length;
   await expect(page.locator('#verifyPersistenceButton')).toBeEnabled();
   await page.locator('#verifyPersistenceButton').click();
   await expect(page.locator('#persistenceStatus')).toContainText('Сохранение подтверждено сервером');
-  expect(calls.filter(call => /\\/api\\/v2\\/daily\\/(?:claim|draw)$/.test(call.path))).toHaveLength(writeCount);
+  expect(calls.filter(call => (call.path === '/api/v2/daily/claim' || call.path === '/api/v2/daily/draw').test(call.path))).toHaveLength(writeCount);
   await expect(page.locator('#dailyCardDisplay')).toBeVisible();
   await expect(page.locator('#dailyCardDisplay img')).toHaveCount(1);
   const mainPainting = await page.locator('#dailyCardDisplay img').getAttribute('src');
