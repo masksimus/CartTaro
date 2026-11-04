@@ -297,3 +297,78 @@ test('transient PostgreSQL unavailability shows retry and recovers without anoth
   expect(requests).toBe(3);
   expect(new URL(page.url()).search).toBe('');
 });
+
+
+test('READ-ONLY one card: real signed VK server, flip animation and interpretation without crystals',async({page,request},info)=>{
+  const id=freshUserId();
+  const token=launch(id);
+  const calls=await prepare(page,request);
+  await visit(page,token);
+  await expect(page.locator('#spreadOneButton')).toBeEnabled();
+  await page.locator('#spreadOneButton').click();
+  await expect(page.locator('#readingDeck .reading-card')).toHaveCount(1);
+  await expect(page.locator('#readingStatus')).toContainText('Нажмите на рубашку');
+  await expect(page.locator('#readingInterpretations article')).toHaveCount(0);
+  await page.locator('#readingDeck .reading-card').click();
+  await expect(page.locator('#readingDeck .reading-card.revealed')).toHaveCount(1);
+  await expect(page.locator('#readingInterpretations article')).toHaveCount(1);
+  await expect(page.locator('#readingInterpretations .reading-summary')).toHaveCount(1);
+  await expect(page.locator('#readingDeck .reading-card')).toBeDisabled();
+  await expect(page.locator('#crystals')).toHaveText('0');
+  await expect(page.locator('#unlocked')).toHaveText('0/22');
+  expect(calls.filter(c=>c.path.includes('/daily/'))).toHaveLength(0);
+  const state=await request.get(backend+'/api/v2/progress',{headers:{Authorization:'Bearer '+token}});
+  expect(state.status()).toBe(200);
+  expect((await state.json()).crystals).toBe(0);
+  const width=await page.evaluate(()=>document.documentElement.scrollWidth);
+  expect(width).toBeLessThanOrEqual(page.viewportSize().width+2);
+  expect(new URL(page.url()).search).toBe('');
+  await info.attach('One-card spread after reveal',{
+    body:await page.screenshot({fullPage:true,animations:'disabled'}),contentType:'image/png'
+  });
+});
+
+test('READ-ONLY three cards: distinct randomized arcana, three semantic positions, keyboard-accessible flip',async({page,request})=>{
+  await prepare(page,request);
+  await visit(page,launch(freshUserId()));
+  await page.locator('#spreadThreeButton').click();
+  const cards=page.locator('#readingDeck .reading-card');
+  await expect(cards).toHaveCount(3);
+  await expect(page.locator('#readingDeck .reading-position')).toHaveText([
+    'Что было','Что происходит','Куда направить внимание'
+  ]);
+  expect(await cards.evaluateAll(nodes=>nodes.every(n=>n.getAttribute('aria-label').startsWith('Перевернуть')))).toBe(true);
+  await cards.nth(0).focus();
+  await page.keyboard.press('Enter');
+  await expect(cards.nth(0)).toHaveClass(/revealed/);
+  await cards.nth(1).click();
+  await cards.nth(2).click();
+  await expect(page.locator('#readingInterpretations article')).toHaveCount(3);
+  await expect(page.locator('#readingInterpretations .reading-summary')).toHaveCount(1);
+  await expect(page.locator('#readingStatus')).toContainText('Расклад открыт');
+  await expect(page.locator('#claimButton')).toBeDisabled(); // PIN gate remains unaffected by free readings
+  const width=await page.evaluate(()=>document.documentElement.scrollWidth);
+  expect(width).toBeLessThanOrEqual(page.viewportSize().width+2);
+});
+
+test('spread API 503 shows a visible recoverable error without enabling reward buttons',async({page,request})=>{
+  await prepare(page,request);
+  await page.route('**/api/v2/spreads/three',route=>route.fulfill({
+    status:503,contentType:'application/json',body:'{"error":"spread_unavailable"}'
+  }));
+  await visit(page,launch(freshUserId()));
+  await page.locator('#spreadThreeButton').click();
+  await expect(page.locator('#readingStatus')).toContainText('временно не отвечает');
+  await expect(page.locator('#readingDeck .reading-card')).toHaveCount(0);
+  await expect(page.locator('#spreadThreeButton')).toBeEnabled();
+  await expect(page.locator('#claimButton')).toBeDisabled();
+  await expect(page.locator('#drawButton')).toBeDisabled();
+});
+
+test('unverified VK launch has neither playable spreads nor rewards',async({page,request})=>{
+  const calls=await prepare(page,request,{bridgeId:'123'});
+  await visit(page,launch(freshUserId()));
+  await expect(page.locator('#spreadOneButton')).toBeDisabled();
+  await expect(page.locator('#spreadThreeButton')).toBeDisabled();
+  expect(calls).toHaveLength(0);
+});
