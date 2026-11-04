@@ -15,10 +15,9 @@ const {chromium}=await import('playwright');
 const server=spawn('python3',['-m','http.server','8766','--bind','127.0.0.1'],{stdio:'pipe'});
 let browser;
 try{
-  for(let i=0;i<25;i++){
-    try{const r=await fetch('http://127.0.0.1:8766/');if(r.ok)break;}catch{}
-    await sleep(250);
-  }
+  // Python http.server starts locally; avoid Node 24 undici
+  // runtime assertions on early-aborted streaming responses.
+  await sleep(850);
   browser=await chromium.launch({headless:true,args:['--no-sandbox']});
   for(const [scenario,vkScript] of [
     ['external-vk-blocked',null],
