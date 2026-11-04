@@ -66,6 +66,7 @@ jobs:
         env:
           DATABASE_URL: postgresql://tarot_ci:fixture_for_ci_only@127.0.0.1:5432/carttaro_ci
           VK_PROTECTED_KEY: TARO_E2E_FIXTURE_ONLY_NEVER_PRODUCTION
+          TARO_V2_WRITES_ENABLED: 'true'
           NODE_ENV: test
           HOST: 127.0.0.1
           PORT: '8788'
