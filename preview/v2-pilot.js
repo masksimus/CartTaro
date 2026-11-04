@@ -11,6 +11,31 @@
     'Справедливость', 'Повешенный', 'Преображение', 'Умеренность',
     'Искушение', 'Башня', 'Звезда', 'Луна', 'Солнце', 'Суд', 'Мир'
   ];
+  // Verified historic, unmodified public-domain Rider–Waite–Smith 1909 scans.
+  // Hosted by the user's working GitHub Pages site; never send signed VK
+  // parameters, cookies or credentials to the image host.
+  const CARD_ASSETS_ORIGIN = 'https://masksimus.github.io/CartTaro/art-preview/classic/';
+  const CARD_FILES = Object.freeze(["00_Fool.jpg","01_Magician.jpg","02_High_Priestess.jpg","03_Empress.jpg","04_Emperor.jpg","05_Hierophant.jpg","06_Lovers.jpg","07_Chariot.jpg","08_Strength.jpg","09_Hermit.jpg","10_Wheel_of_Fortune.jpg","11_Justice.jpg","12_Hanged_Man.jpg","13_Death.jpg","14_Temperance.jpg","15_Devil.jpg","16_Tower.jpg","17_Star.jpg","18_Moon.jpg","19_Sun.jpg","20_Judgement.jpg","21_World.jpg"]);
+  function cardImage(id, {eager = false, reversed = false} = {}) {
+    if (!Number.isInteger(id) || id < 0 || id >= CARD_FILES.length) return null;
+    const image = document.createElement('img');
+    image.src = CARD_ASSETS_ORIGIN + CARD_FILES[id];
+    image.alt = 'Оригинальная карта «' + CARD_NAMES[id] + '» (1909)' +
+      (reversed ? ', перевёрнутая' : '');
+    image.width = 720;
+    image.height = 1200;
+    image.loading = eager ? 'eager' : 'lazy';
+    image.decoding = 'async';
+    image.referrerPolicy = 'no-referrer';
+    image.draggable = false;
+    if(reversed) image.classList.add('card-reversed');
+    image.addEventListener('error', () => {
+      // An unavailable image must never block gameplay or reveal private data.
+      image.replaceWith(make('span','art-fallback','✧'));
+    }, {once: true});
+    return image;
+  }
+
   const ACHIEVEMENTS = [
     ['firstArcana', '✧ Первый аркан'],
     ['fiveArcana', '✦ Пять арканов'],
@@ -100,11 +125,33 @@
       const tile = make('div', 'arcana' + (opened ? ' open' : ''));
       tile.setAttribute('role', 'listitem');
       tile.setAttribute('aria-label', opened ? 'Открыто: ' + name : 'Аркан ещё не открыт');
-      tile.appendChild(make('span', 'symbol', opened ? '✦' : '✧'));
-      tile.appendChild(make('span', 'name', opened ? name : 'Тайна'));
+      if(opened) {
+        const picture = cardImage(id);
+        if(picture) tile.appendChild(picture);
+        tile.appendChild(make('span','name',name));
+        tile.title = 'Открытый Аркан: ' + name;
+      } else {
+        tile.appendChild(make('span', 'symbol', '✧'));
+        tile.appendChild(make('span', 'name', 'Тайна'));
+      }
       root.appendChild(tile);
     });
     setText('unlocked', unique.size + '/22');
+  }
+
+  function drawDailyCard(id) {
+    const box = $('dailyCardDisplay');
+    if (!Number.isInteger(id) || id < 0 || id >= CARD_FILES.length) {
+      box.replaceChildren();
+      box.hidden = true;
+      return;
+    }
+    box.hidden = false;
+    box.replaceChildren();
+    const title = make('h3','daily-picture-title','Карта дня — ' + CARD_NAMES[id]);
+    const image = cardImage(id,{eager:true});
+    const help = make('p','daily-picture-note','Сохранена на сервере. При повторном входе показывается тот же Аркан.');
+    box.append(title,image,help);
   }
 
   function drawMissions(data) {
@@ -142,6 +189,7 @@
     setText('crystals', data.crystals);
     setText('streak', data.streak);
     drawCollection(data.arcana);
+    drawDailyCard(data.dailyCardId);
     drawMissions(data.missions);
     drawAchievements(data.achievements);
     $('claimButton').disabled = !active || !writesEnabled || !isUnlocked || busy || data.claimedToday === true;
@@ -229,6 +277,8 @@
         if (!Number.isInteger(result.cardId) || result.cardId < 0 || result.cardId > 21) throw new Error('invalid_response');
         setText('drawResult', '✦ ' + CARD_NAMES[result.cardId] + ' · ' +
           (result.isNew ? 'карта сохранена' : 'сегодня уже открыта'));
+        // Server owns the selected card; never generate a replacement locally.
+        drawDailyCard(result.cardId);
         setStatus('Карта дня подтверждена сервером.', 'good');
       }
       showProgress(result.progress);
@@ -299,12 +349,9 @@
     back.appendChild(make('span','reading-back-sigil','✧'));
     back.appendChild(make('span','reading-back-bottom','ARCANA'));
     const front = make('span','reading-card-side reading-card-front');
-    front.appendChild(make('span','reading-numeral',asRoman(card.id)));
-    const illustration = make('span','reading-card-illustration');
-    illustration.appendChild(make('span','reading-sigil',card.sigil));
-    front.appendChild(illustration);
-    front.appendChild(make('span','reading-card-name',card.name));
-    front.appendChild(make('span','reading-direction',card.reversed ? 'ОБРАТНАЯ' : 'ПРЯМАЯ'));
+    const picture = cardImage(card.id,{eager:true,reversed:card.reversed});
+    if(picture) front.appendChild(picture);
+    if(card.reversed) front.appendChild(make('span','reading-direction','ПЕРЕВЁРНУТАЯ'));
     frame.append(back,front);
     button.appendChild(frame);
     button.addEventListener('click',()=>{
