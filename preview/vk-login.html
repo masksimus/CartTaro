@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="robots" content="noindex,nofollow,noarchive">
+  <meta name="referrer" content="no-referrer">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' https://unpkg.com; style-src 'self'; img-src 'self' data:; connect-src 'self'; base-uri 'none'; form-action 'none'">
+  <title>Карты Таро · тест входа ВК</title>
+  <link rel="stylesheet" href="./style.css">
+  <script defer src="https://unpkg.com/@vkontakte/vk-bridge@2.14.0/dist/browser.min.js" referrerpolicy="no-referrer"></script>
+  <script defer src="./vk-login.js"></script>
+</head>
+<body>
+  <main class="wrap">
+    <header class="hero">
+      <div class="eyebrow">✦ Карты Таро · тестовый вход</div>
+      <h1>Проверка запуска VK</h1>
+      <p>Только проверка подписанного запуска. Не изменяет карту дня, кристаллы, историю или достижения.</p>
+    </header>
+    <section class="card status-card">
+      <h2>Подлинность запуска</h2>
+      <p class="status" id="state" role="status" aria-live="polite">Подготавливаем безопасную проверку…</p>
+      <div class="chips">
+        <span class="chip" id="bridge">VK Bridge: ожидание</span>
+        <span class="chip" id="signature">Подпись: ожидание</span>
+      </div>
+      <p class="hint" id="hint">Запуск должен быть открыт из тестового URL приложения VK. Секретный ключ никогда не отправляется в браузер.</p>
+      <button type="button" id="retry">Проверить ещё раз</button>
+    </section>
+    <section class="card status-card">
+      <h2>Границы теста</h2>
+      <p>Подпись проверяется на сервере. Награды и сохранение прогресса отключены. Для проверки не требуются платежи, публикация приложения или изменение основной версии.</p>
+    </section>
+    <footer>Только для разработчика. Не публикуйте подписанные параметры запуска, URL с ними или скриншот адресной строки.</footer>
+  </main>
+</body>
+</html>
