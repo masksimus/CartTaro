@@ -55,6 +55,7 @@
   let profileId = null;
   let progress = null;
   let loadingProgress = false;
+  let checkingPersistence = false;
   let readingBusy = false;
   let currentSpread = null;
   let revealedCards = new Set();
@@ -252,6 +253,8 @@
     $('pilotUnlockButton').disabled = true;
     $('retryProgressButton').hidden = true;
     $('retryProgressButton').disabled = true;
+    $('verifyPersistenceButton').hidden = true;
+    $('verifyPersistenceButton').disabled = true;
     bearer = null;
     readingControlsBusy(true);
     $('claimButton').disabled = true;
@@ -469,6 +472,7 @@
   async function loadProgress() {
     if (!bearer || loadingProgress) return;
     loadingProgress = true;
+    $('verifyPersistenceButton').disabled = true;
     $('retryProgressButton').hidden = true;
     $('retryProgressButton').disabled = true;
     setStatus('Подключаем сохранённый прогресс из Neon…');
@@ -508,6 +512,9 @@
       finally { clearTimeout(timer); }
       active = true;
       showProgress(data);
+      $('verifyPersistenceButton').hidden = false;
+      $('verifyPersistenceButton').disabled = false;
+      $('persistenceStatus').textContent = '';
       setChip('authStatus', 'Сервер: подпись проверена', 'good');
       $('pilotAccess').hidden = !writesEnabled;
       $('pilotUnlockButton').disabled = !writesEnabled;
@@ -522,6 +529,8 @@
       active = false;
       writesEnabled = false;
       isUnlocked = false;
+      $('verifyPersistenceButton').disabled = true;
+      $('verifyPersistenceButton').hidden = true;
       testPin = null;
       $('pilotPin').value = '';
       $('pilotAccess').hidden = true;
@@ -534,6 +543,54 @@
     } finally {
       loadingProgress = false;
       $('retryProgressButton').disabled = !bearer;
+    }
+  }
+
+  // GET-only verification for real Android VK WebView UAT. The signed VK launch
+  // remains in memory; this never draws a new card or claims any rewards.
+  async function verifyPersistence() {
+    if (!active || !bearer || !progress || checkingPersistence || busy || loadingProgress) return;
+    checkingPersistence = true;
+    const button = $('verifyPersistenceButton');
+    const status = $('persistenceStatus');
+    const previous = progress;
+    button.disabled = true;
+    status.className = 'persist-status';
+    status.textContent = 'Повторно читаем сохранение из Neon…';
+    try {
+      const remote = await request('/progress');
+      if (!remote || !Array.isArray(remote.arcana) ||
+          typeof remote.dayUtc !== 'string' ||
+          !/^\\d{4}-\\d{2}-\\d{2}$/.test(remote.dayUtc) ||
+          (remote.dailyCardId !== null &&
+           (!Number.isInteger(remote.dailyCardId) || remote.dailyCardId < 0 || remote.dailyCardId > 21)) ||
+          (remote.dailyCardDrawn === true) !== (remote.dailyCardId !== null)) {
+        throw new Error('invalid_response');
+      }
+      const cardSame = remote.dailyCardId === previous.dailyCardId;
+      const crystalsSame = remote.crystals === previous.crystals;
+      const collectionSame = JSON.stringify([...remote.arcana].sort((a,b)=>a-b)) ===
+        JSON.stringify([...previous.arcana].sort((a,b)=>a-b));
+      const daySame = remote.dayUtc === previous.dayUtc;
+      showProgress(remote);
+      status.className = 'persist-status good';
+      if (daySame && cardSame && crystalsSame && collectionSame) {
+        status.textContent = 'Сохранение подтверждено сервером: карта дня, кристаллы и коллекция совпадают. Данные не изменялись.';
+      } else if (!daySame) {
+        status.textContent = 'На сервере начались новые сутки UTC. Загружено актуальное состояние без повторного начисления.';
+      } else {
+        status.textContent = 'Сервер вернул обновлённый прогресс. Данные на экране синхронизированы; начислений не было.';
+      }
+    } catch (error) {
+      if (error?.status === 401) {
+        stop(messageForError(error));
+        return;
+      }
+      status.className = 'persist-status bad';
+      status.textContent = 'Не удалось проверить сохранение. Прежние данные на экране сохранены, повторите проверку.';
+    } finally {
+      checkingPersistence = false;
+      button.disabled = !active;
     }
   }
 
@@ -571,6 +628,7 @@
   $('spreadThreeButton').addEventListener('click', () => { void requestSpread(3); });
   $('pilotUnlockButton').addEventListener('click', () => { void unlockTester(); });
   $('retryProgressButton').addEventListener('click', () => { void loadProgress(); });
+  $('verifyPersistenceButton').addEventListener('click', () => { void verifyPersistence(); });
   $('claimButton').addEventListener('click', () => { void action('claim'); });
   $('drawButton').addEventListener('click', () => { void action('draw'); });
   void boot();
