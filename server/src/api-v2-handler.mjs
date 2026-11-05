@@ -73,8 +73,18 @@ export async function handleV2(req, res, action) {
   const writesFlag = process.env.TARO_V2_WRITES_ENABLED === 'true';
   const developerPilot = storageReadyForRequests && writesFlag &&
     testPinConfigured() && !publicRequested;
+  // Preview is a tester-only environment. Even if write flags are enabled,
+  // fail closed unless an explicit allowlist of signed VK IDs is configured.
+  const isV5Preview = publicRequested && process.env.VERCEL_ENV === 'preview';
+  const rawAllowed = (process.env.TARO_V5_UAT_USER_IDS || '').split(',')
+    .map(value => value.trim());
+  const allowedUserIdsValid = rawAllowed.length >= 1 && rawAllowed.length <= 5 &&
+    rawAllowed.every(id => /^[1-9][0-9]{0,15}$/.test(id)) &&
+    new Set(rawAllowed).size === rawAllowed.length;
+  const uatReady = !isV5Preview ||
+    (process.env.TARO_V5_UAT_MODE === 'true' && allowedUserIdsValid);
   const publicGame = storageReadyForRequests && writesFlag &&
-    publicRequested && !testPinConfigured();
+    publicRequested && !testPinConfigured() && uatReady;
   const writesEnabled = developerPilot || publicGame;
   if (action === 'status') {
     return json(res, 200, {
@@ -103,6 +113,12 @@ export async function handleV2(req, res, action) {
   } catch (e) {
     if (e instanceof AuthError) return json(res, 401, { error: 'unauthorized' });
     return json(res, 500, { error: 'internal_error' });
+  }
+  if (isV5Preview) {
+    if (!uatReady) return json(res, 503, { error: 'uat_access_not_configured' });
+    if (!rawAllowed.includes(user.userId)) {
+      return json(res, 403, { error: 'uat_access_denied' });
+    }
   }
   if (action === 'spreadOne' || action === 'spreadThree') {
     // Read-only, signed VK-only entertainment. No DB writes, no rewards,
