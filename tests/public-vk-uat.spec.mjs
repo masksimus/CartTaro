@@ -3,7 +3,7 @@ import { test, expect } from '@playwright/test';
 /* Read-only smoke of the real isolated Vercel test host.
  * No VK credentials or test PIN. No balance mutations.
  */
-const BASE = 'https://tarot-vk-uat-public-git-742c15-maksimiirina1992-9738s-projects.vercel.app';
+const BASE = 'https://tarot-vk-uat-public-2026.vercel.app';
 
 test('public VK UAT: live mobile UI, image, Bridge CDN, Neon health', async ({page,request}) => {
   const errors = [];
@@ -25,14 +25,14 @@ test('public VK UAT: live mobile UI, image, Bridge CDN, Neon health', async ({pa
   expect(health.status()).toBe(200);
   expect(await health.json()).toMatchObject({
     service:'tarot-v2-postgres',ready:true,database:'connected',
-    progressReadReady:true,rewardsEnabled:false
+    progressReadReady:true,rewardsEnabled:true
   });
 
   const status = await request.get(BASE+'/api/v2/status',{timeout:15000});
   expect(status.status()).toBe(200);
   expect(await status.json()).toMatchObject({
     service:'tarot-v2-postgres',appId:54582199,
-    storageConfigured:true,rewardsEnabled:false,mode:'read_only'
+    storageConfigured:true,rewardsEnabled:true,mode:'developer_pilot'
   });
 
   // Actual historical JPEG, loaded by Chromium under CSP, not a mock image.
@@ -60,10 +60,18 @@ test('public VK UAT: live mobile UI, image, Bridge CDN, Neon health', async ({pa
   expect(errors).toEqual([]);
 });
 
-test('VK personal progress must reject anonymous access (production secret required)', async ({request}) => {
-  // This is intentionally a release gate. If it returns 503 auth_not_configured,
-  // Preview lacks the protected VK key. Do not weaken auth or mark the UAT green.
+test('VK personal progress must reject anonymous access with HTTP 401', async ({request}) => {
+  // Release gate: Production of this isolated test project has the secret configured.
+  // Without a signed VK launch, access must still be denied.
   const response = await request.get(BASE+'/api/v2/progress',{timeout:15000});
   expect(response.status()).toBe(401);
   expect((await response.json()).error).toBe('unauthorized');
+});
+
+test('protected actions reject unsigned callers without awarding anything', async ({request}) => {
+  for (const endpoint of ['/api/v2/daily/claim','/api/v2/daily/draw','/api/v2/access']) {
+    const response = await request.post(BASE+endpoint,{timeout:15000});
+    expect(response.status()).toBe(401);
+    expect((await response.json()).error).toBe('unauthorized');
+  }
 });
