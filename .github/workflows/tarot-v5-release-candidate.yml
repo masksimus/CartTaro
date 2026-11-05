@@ -7,6 +7,7 @@ on:
       - 'release/**'
       - 'server/src/**'
       - 'tests/v5-release.spec.mjs'
+      - 'tests/v5-public-preview.spec.mjs'
       - '.github/workflows/tarot-v5-release-candidate.yml'
   workflow_dispatch:
 permissions:
@@ -48,6 +49,7 @@ jobs:
           node --check release/app.js
           node --check server/test/pg-http-fixture.mjs
           node --check tests/v5-release.spec.mjs
+          node --check tests/v5-public-preview.spec.mjs
       - name: Run existing server/PostgreSQL regression tests
         run: node --test --test-reporter=spec server/test/*.test.mjs
       - name: Install Playwright and Chromium
@@ -78,6 +80,9 @@ jobs:
       - name: Verify release candidate on 320, 360 and 393 pixel Android screens
         working-directory: tests
         run: npx playwright test --config playwright.config.mjs v5-release.spec.mjs
+      - name: Verify deployed V5 preview against real CDN and fail-closed API
+        working-directory: tests
+        run: npx playwright test --config playwright.config.mjs v5-public-preview.spec.mjs
       - name: Upload diagnostic traces on failure
         if: failure()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
