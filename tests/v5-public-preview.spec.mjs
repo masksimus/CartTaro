@@ -42,11 +42,11 @@ test('V5 preview: 3 Android sizes, real images, no tester controls, fail-closed 
     service:'tarot-v2-postgres',database:'connected',
     ready:true,progressReadReady:true,rewardsEnabled:false
   });
-  // Without VK_PROTECTED_KEY in Preview the API fails closed (503),
-  // rather than accepting unsigned or spoofed user IDs.
+  // The temporary UAT verifier accepts only valid signed VK launches.
+  // Anonymous access always fails closed, without reading personal data.
   const anonymous=await request.get(BASE+'/api/v2/progress',{timeout:15000});
-  expect(anonymous.status()).toBe(503);
-  expect((await anonymous.json()).error).toBe('auth_not_configured');
+  expect(anonymous.status()).toBe(401);
+  expect((await anonymous.json()).error).toBe('unauthorized');
 
   // Verify an actual Pamela Colman Smith public-domain JPG is displayed
   // under deployed CSP. Local fixture tests intentionally mock this resource.
