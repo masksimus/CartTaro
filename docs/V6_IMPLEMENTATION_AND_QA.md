@@ -24,12 +24,12 @@ game. No real Neon credentials or VK key were accessed, copied or changed.
 
 | Area | Behavior |
 | --- | --- |
-| Today | Original illustrated deck, tactile flip, stable daily card, topic-specific reflection, save/share only on user action |
+| Today | Engraved green-and-gold game table, large fanned deck, tactile flip, stable daily card, series/collection shortcuts, topic-specific reflection, save/share only on user action |
 | Readings | Four themes, 1/3 distinct cards, individual reveals, original interpretations and questions, downloadable complete result |
 | Collection | 22 original local SVG engravings, unknown/unlocked states, accessible modal details, chapter milestones at 5/10/22 cards |
 | Quests | Daily reveal and three achievable reflection tasks; explicit session/local status, no client-issued rewards |
 | Profile | Local or server progress/streak, optional VK name request, motion setting, saved thoughts, help, rights/provenance, local reset and signed deletion request |
-| Returning visits | Local demo stores daily openings/collection and up to 30 thoughts; deterministic UTC day loop; authenticated state comes from PostgreSQL |
+| Returning visits | Seven-step series panel uses actual streak and today's card; local demo stores openings/collection and up to 30 thoughts; deterministic UTC day loop; authenticated state comes from PostgreSQL |
 | Offline | Explicit static cache allowlist; demo works after first complete cache installation; storage denial and art failure have readable fallbacks |
 
 The anonymous loop intentionally awards no currency. Signed daily rewards remain
@@ -40,12 +40,14 @@ storage. Its saved thoughts remain in session memory, with an explicit download.
 
 ## Design and provenance
 
-Warm paper `#f5efdf`, ink `#293e36`, terracotta `#94452f`, engraved botanical and
-celestial motifs, local DejaVu Serif/Sans, native touch/keyboard buttons, visible
+Warm paper `#f5efdf`, felt `#213e36`, brass `#eac27b`, ink `#293e36` and
+terracotta `#94452f`, engraved botanical and celestial motifs, local DejaVu
+Serif/Sans, native touch/keyboard buttons, visible
 focus and reduced-motion support. Five bottom navigation areas have safe-area
 padding. Layouts cover 320/360/393/430 px and 2x/1.25x pixel ratios.
 
-All 22 illustrations, card back, paper texture and 88 thematic questions are
+All 22 illustrations, card back, engraved table, medallion icons, paper texture
+and 88 thematic questions are
 original project work. Sources are `scripts/v6-art.mjs` and
 `scripts/v6-content.mjs`. V5's historical scan URLs are not used by V6.
 `v6/LICENSES.txt` and adjacent full license texts document provenance.
@@ -58,7 +60,11 @@ before compression; the standalone HTML separately embeds the same resources.
 
 Research actually read: official VK Bridge and create-vk-mini-app READMEs,
 https://lunagames.ru/pechenka/ and https://t-j.ru/vk-cookie-story/ . Only the broad
-daily-ritual/collection/return-visit concept informed this work. The official
+daily-ritual/collection/return-visit concept informed this work. The owner then
+supplied five CookiesApp screenshots: the central game object, primary action,
+illustrated navigation, daily panel and quest progression informed the original
+Tarot scene. No screenshot pixels, branding, paid packs or commercial copy
+were imported. The official
 `dev.vk.com/ru/mini-apps/bridge` URL failed from this environment; current VK
 permissions, domain allowlist and policy compliance have not been certified.
 
@@ -68,7 +74,7 @@ permissions, domain allowlist and policy compliance have not been certified.
 | --- | --- |
 | `node --check` across server, API, V6 and build scripts | PASS |
 | All Node tests against two fresh PostgreSQL 16 databases | **50 passed, 0 failed, 0 skipped** |
-| V6 Playwright: 14 scenarios × four Android viewport configurations | **56 passed** |
+| V6 Playwright: 16 scenarios × four Android viewport configurations | **64 passed** |
 | Existing V5 signed UI regression: three scenarios × three widths | **9 passed** |
 | axe WCAG 2 A/AA and 2.1 AA across five screens × four widths | No violations in tested states |
 | Visible button height / horizontal overflow | All tested buttons at least 44px; no overflow |
@@ -76,6 +82,8 @@ permissions, domain allowlist and policy compliance have not been certified.
 | Offline reload and readings | PASS after real service-worker cache installation |
 | Redirected `index.html` → `/` cache | PASS against a real HTTP 307 fixture |
 | Single HTML opened from disk with network disabled | PASS at all four widths |
+| Series panel, repeated opening, next day and skipped day | Real progress preserved; collection survives a missed day |
+| Short 640px-tall viewport | Daily action above navigation at all four widths |
 | Forged, expired, missing and duplicate launch parameters | Rejected or local-only; no unauthorized writes |
 | Signed PostgreSQL claim/draw/relaunch | PASS; one reward, same daily card, restored collection |
 | Privacy request | Signed, idempotent, no account creation/deletion, no reward flag change |
@@ -93,24 +101,35 @@ run. The clean-database run passed; CI provisions fresh databases.
 
 ### Visual refinement requested by the owner
 
-The second pass uses an original publisher's seal, five custom line icons,
-numbered topic indexes, Roman spread folios and a dotted walking line for daily
-tasks. Collected cards appear first in the catalog. The image layout now keeps
-the correct 3:5 proportions in the collection and detail dialog; HTML image
-height attributes previously caused excessive vertical whitespace. No stock
-art, UI template or third-party icon set was added.
+The screenshot-informed revision replaces the editorial first screen with an
+engraved green game table, a large fanned deck, a raised brass action button,
+series/collection counters and a direct quest shortcut. Five original medallions
+form persistent navigation, with the daily sun in the center. The series panel
+shows real consecutive openings, seven milestones and today's card; it promises
+no new rewards. One/three-card choices use illustrated fans; four quest tiles
+show actual completion. Collected cards appear first and retain 3:5 proportions.
+All art remains original and local. No stock UI template or icon set was added.
+
+An added 640px-tall viewport check found that navigation covered the daily action.
+Compact scene spacing and a smaller deck on short screens fixed it; the final
+64-case matrix passes. The seven-day panel was also checked with axe and across
+reload, the next UTC day and a skipped day. Backend/authentication code is
+unchanged by this visual revision.
 
 ### Before/after and game screens
 
-| V5 unsigned dead end | V6 first session |
+| Previous V6 atlas | V6 game scene |
 | --- | --- |
-| ![Before at 393px](qa/v6/before-v5-393.png) | ![V6 at 393px](qa/v6/today-393.png) |
+| ![Previous V6 at 393px](qa/v6/before-atlas-393.png) | ![V6 at 393px](qa/v6/today-393.png) |
+
+The [original V5 unsigned screen](qa/v6/before-v5-393.png) is retained as well.
 
 Additional actual-browser screenshots: [320px](qa/v6/today-320.png),
 [360px](qa/v6/today-360.png), [430px, DPR 1.25](qa/v6/today-430.png),
 [daily reveal](qa/v6/reveal-393.png), [reading](qa/v6/readings-393.png),
 [collection](qa/v6/collection-393.png), [quests](qa/v6/quests-393.png),
-[profile](qa/v6/profile-393.png), [hosted demo](qa/v6/hosted-demo-393.png).
+[profile](qa/v6/profile-393.png), [series panel](qa/v6/journey-393.png),
+[hosted demo](qa/v6/hosted-demo-393.png).
 These are Chromium mobile emulation, not physical Android/VK screenshots.
 
 ## Reproduce locally or in CI

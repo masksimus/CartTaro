@@ -1,20 +1,20 @@
 
 Running 9 tests using 1 worker
 
-(node:8612) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(node:31489) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
 (Use `node --trace-warnings ...` to show where the warning was created)
-  ✓  1 [android-320] › v5-release.spec.mjs:48:1 › public game: real signed VK, claim and daily draw once, restore after relaunch (538ms)
-  ✓  2 [android-320] › v5-release.spec.mjs:85:1 › public game: one and three card readings reveal original images and meanings (370ms)
-  ✓  3 [android-320] › v5-release.spec.mjs:101:1 › public game: missing or forged launch cannot open user data or rewards (188ms)
-(node:8746) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+  ✓  1 [android-320] › v5-release.spec.mjs:48:1 › public game: real signed VK, claim and daily draw once, restore after relaunch (792ms)
+  ✓  2 [android-320] › v5-release.spec.mjs:85:1 › public game: one and three card readings reveal original images and meanings (581ms)
+  ✓  3 [android-320] › v5-release.spec.mjs:101:1 › public game: missing or forged launch cannot open user data or rewards (390ms)
+(node:31748) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
 (Use `node --trace-warnings ...` to show where the warning was created)
-  ✓  4 [android-360] › v5-release.spec.mjs:48:1 › public game: real signed VK, claim and daily draw once, restore after relaunch (481ms)
-  ✓  5 [android-360] › v5-release.spec.mjs:85:1 › public game: one and three card readings reveal original images and meanings (405ms)
-  ✓  6 [android-360] › v5-release.spec.mjs:101:1 › public game: missing or forged launch cannot open user data or rewards (176ms)
-(node:8872) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+  ✓  4 [android-360] › v5-release.spec.mjs:48:1 › public game: real signed VK, claim and daily draw once, restore after relaunch (715ms)
+  ✓  5 [android-360] › v5-release.spec.mjs:85:1 › public game: one and three card readings reveal original images and meanings (644ms)
+  ✓  6 [android-360] › v5-release.spec.mjs:101:1 › public game: missing or forged launch cannot open user data or rewards (385ms)
+(node:32046) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
 (Use `node --trace-warnings ...` to show where the warning was created)
-  ✓  7 [android-393] › v5-release.spec.mjs:48:1 › public game: real signed VK, claim and daily draw once, restore after relaunch (512ms)
-  ✓  8 [android-393] › v5-release.spec.mjs:85:1 › public game: one and three card readings reveal original images and meanings (407ms)
-  ✓  9 [android-393] › v5-release.spec.mjs:101:1 › public game: missing or forged launch cannot open user data or rewards (181ms)
+  ✓  7 [android-393] › v5-release.spec.mjs:48:1 › public game: real signed VK, claim and daily draw once, restore after relaunch (840ms)
+  ✓  8 [android-393] › v5-release.spec.mjs:85:1 › public game: one and three card readings reveal original images and meanings (583ms)
+  ✓  9 [android-393] › v5-release.spec.mjs:101:1 › public game: missing or forged launch cannot open user data or rewards (278ms)
 
-  9 passed (4.9s)
+  9 passed (7.9s)

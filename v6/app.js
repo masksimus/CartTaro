@@ -21,6 +21,7 @@ function updateDay(){if(mode==='demo')progress=demoProgress(demo);if(sessionDay!
 function showTab(next,focus=false){tab=next;updateDay();render();document.querySelectorAll('[data-tab]').forEach(b=>{if(b.dataset.tab===tab)b.setAttribute('aria-current','page');else b.removeAttribute('aria-current');});if(focus){main.focus({preventScroll:true});window.scrollTo({top:0,behavior:'instant'});}}
 function render(){
   main.replaceChildren();
+  document.body.dataset.screen=tab;
   $('mode').textContent=mode==='demo'?'ЛОКАЛЬНОЕ ДЕМО · БЕЗ ВХОДА В VK':verified?'VK · ПОДПИСЬ ПРОВЕРЕНА':'VK · ВХОД НЕ ПОДТВЕРЖДЁН';
   $('connection').textContent=navigator.onLine?'':'Без сети';
   ({today:renderToday,readings:renderReadings,collection:renderCollection,quests:renderQuests,profile:renderProfile})[tab]();
@@ -42,11 +43,15 @@ function progressMeter(){
 }
 function topicPicker(){const group=el('div','topics');group.setAttribute('role','group');group.setAttribute('aria-label','Тема размышления');TOPICS.forEach((t,i)=>{const b=button('',()=>{topic=t.id;render();});b.setAttribute('aria-pressed',String(topic===t.id));b.append(el('span','topic-icon',String(i+1).padStart(2,'0')),el('span','',t.name));group.append(b);});return group;}
 function renderToday(){
+  const hud=el('div','game-hud');
+  const streak=button('',showJourney,'streak-chip');streak.id='journey-open';streak.disabled=mode==='signed'&&!verified;streak.append(el('span','hud-symbol','☀'),el('span','',`Серия дней · ${progress.streak}`));
+  const collection=button('',()=>showTab('collection',true),'collection-chip');collection.append(el('span','hud-symbol','▱'),el('span','',`${progress.arcana.length} / 22`));collection.setAttribute('aria-label',`Коллекция: ${progress.arcana.length} из 22 арканов`);hud.append(streak,collection);main.append(hud);
   const head=el('header','today-heading'),date=new Intl.DateTimeFormat('ru',{day:'numeric',month:'long',timeZone:'UTC'}).format(new Date(progress.dayUtc+'T12:00:00Z'));
-  head.append(el('p','eyebrow',`${date} · ${mode==='demo'?'дата устройства':'дата сервера'} · UTC`),el('h1','',progress.dailyCardDrawn?'Ваша история сегодня':'Маленькая пауза.\nНовый взгляд.'),el('p','intro',progress.dailyCardDrawn?'Одна карта. Столько способов услышать себя.':'Сделайте вдох. Коснитесь колоды и найдите мысль, которую возьмёте с собой.'));
+  head.append(el('p','eyebrow',`${date} · ${mode==='demo'?'дата устройства':'дата сервера'} · UTC`),el('h1','',progress.dailyCardDrawn?'Ваш аркан сегодня':'Что откроется сегодня?'),el('p','intro',progress.dailyCardDrawn?'Карта открыта. Прислушайтесь к себе.':'Коснитесь колоды. Начните свою историю.'));
   head.querySelector('h1').classList.add('preserve-lines');main.append(head);
   const stage=el('div','stage'),hasCard=progress.dailyCardId!==null;
-  const current=card(progress.dailyCardId,{flipped:hasCard&&!animateDaily,onFlip:()=>drawDaily(),label:'Открыть карту дня'});stage.append(current);main.append(stage);
+  const current=card(progress.dailyCardId,{flipped:hasCard&&!animateDaily,onFlip:()=>drawDaily(),label:'Открыть карту дня'});
+  const questShortcut=button('',()=>showTab('quests',true),'scene-shortcut');questShortcut.append(el('span','','✦'),el('span','','Дела дня'));questShortcut.setAttribute('aria-label','Перейти к заданиям дня');stage.append(current,questShortcut);main.append(stage);
   if(animateDaily&&hasCard){animateDaily=false;requestAnimationFrame(()=>requestAnimationFrame(()=>{current.classList.add('flipped');current.setAttribute('aria-label',ARCANA[progress.dailyCardId].name);current.setAttribute('aria-pressed','true');}));}
   if(!hasCard){
     const draw=operation(busy?'Открываем…':'Открыть карту дня',drawDaily);draw.id='daily-open';draw.disabled=busy||(mode==='signed'&&(!verified||!writes));current.disabled=draw.disabled;main.append(draw);
@@ -61,6 +66,15 @@ function renderToday(){
   }
   main.append(progressMeter());
 }
+function showJourney(){
+  const root=$('detail-content');root.replaceChildren();const sheet=el('section','journey-sheet'),title=el('h2','','День за днём');title.id='detail-title';
+  sheet.append(el('p','eyebrow','ВАША СЕРИЯ ОТКРЫТИЙ'),title,el('p','',`Дней подряд: ${progress.streak}. Одна карта — одна маленькая история.`));
+  const track=el('ol','day-track');track.setAttribute('aria-label','Первые семь дней текущей серии');
+  for(let day=1;day<=7;day++){const reached=progress.streak>=day,step=el('li',reached?'reached':'');step.append(el('span','',reached?'✓':day));step.setAttribute('aria-label',`День ${day}: ${reached?'пройден':'впереди'}`);track.append(step);}sheet.append(track);
+  const fan=el('div','journey-fan');fan.setAttribute('aria-hidden','true');for(let i=0;i<3;i++)fan.append(picture(progress.dailyCardId??0,i!==1||progress.dailyCardId===null));sheet.append(fan);
+  sheet.append(el('h3','',progress.dailyCardDrawn?'Сегодняшняя карта уже с вами':'Сегодня — новая история'),el('p','small',progress.dailyCardDrawn?'Следующая карта откроется после 00:00 UTC. Пропуск дня не забирает собранные арканы.':'Откройте карту дня, чтобы продолжить серию. Пропуск дня не забирает собранные арканы.'),button(progress.dailyCardDrawn?'Перейти к раскладам':'К карте дня',()=>{$('details').close();showTab(progress.dailyCardDrawn?'readings':'today',true);if(!progress.dailyCardDrawn)$('daily-open')?.focus();},'primary'),el('p','subtle',mode==='demo'?'Локальный прогресс на этом устройстве. Без наград.':'Серия и коллекция подтверждаются сервером.'));
+  root.append(sheet);$('details').showModal();
+}
 async function drawDaily(){
   updateDay();if(busy||progress.dailyCardDrawn)return;
   if(mode==='demo'){demo=openDemo(demo);progress=demoProgress(demo);storeDemo();animateDaily=true;render();return;}
@@ -72,7 +86,7 @@ async function drawDaily(){
 function renderReadings(){
   main.append(header('ЗАЛ РАСКЛАДОВ','О чём поговорим?','Выберите тему. Карты предложат вопросы — ответы остаются за вами.'),topicPicker());
   const options=el('div','spread-options');
-  for(const count of [1,3]){const b=operation('',()=>drawSpread(count),'');b.id=`spread-${count}`;b.disabled=busy||(mode==='signed'&&!verified);b.append(el('span','spread-number',count===1?'I':'III'),el('strong','',count===1?'Одна карта':'Три карты'),el('small','',count===1?'Один вопрос.\nНовый угол зрения.':'Опыт, настоящее\nи следующий шаг.'));options.append(b);}main.append(options);
+  for(const count of [1,3]){const b=operation('',()=>drawSpread(count),'');b.id=`spread-${count}`;b.disabled=busy||(mode==='signed'&&!verified);const preview=el('span','spread-preview');preview.setAttribute('aria-hidden','true');for(let i=0;i<count;i++)preview.append(picture(0,true));b.append(preview,el('strong','',count===1?'Одна карта':'Три карты'),el('small','',count===1?'Один вопрос.\nНовый угол зрения.':'Опыт, настоящее\nи следующий шаг.'),el('span','spread-go','Открыть →'));options.append(b);}main.append(options);
   if(!spread){main.append(el('p','subtle','Расклады не расходуют и не начисляют награды.'));return;}
   const activeTopic=TOPICS.find(t=>t.id===spreadTopic);main.append(el('p','eyebrow',`Расклад · ${activeTopic.name}`));
   const deck=el('div','spread-deck'+(spread.cards.length===1?' single':''));deck.id='reading-deck';
@@ -110,7 +124,9 @@ function showDetail(id,known){
 function renderQuests(){
   main.append(header('МАЛЕНЬКИЕ ШАГИ','Дела для себя','Несколько спокойных минут сегодня. Без гонки, обязательных репостов и штрафов за пропуск.'));
   const items=[['Открыть карту дня','Найдите мысль, которую возьмёте с собой.',progress.dailyCardDrawn,'today'],['Завершить расклад','Откройте все карты в любом раскладе.',tasks.reading,'readings'],['Узнать свой аркан','Откройте подробности собранной карты.',tasks.detail,'collection'],['Сохранить мысль','Сохраните карту дня или законченный расклад.',tasks.saved,'today']];
-  items.forEach(([title,description,done,target])=>{const row=el('article','quest'+(done?' done':'')),body=el('div');row.append(el('span','quest-mark',done?'✓':'○'));body.append(el('h3','',title),el('p','',description),el('p','',done?'Выполнено':'Ещё впереди'));if(!done)body.append(button('Перейти ↗',()=>showTab(target,true),'link-button'));row.append(body);main.append(row);});
+  const complete=items.filter(item=>item[2]).length,summary=el('div','quest-summary');summary.append(el('span','',`Ваш день · ${complete} из 4`));const meter=el('progress','meter');meter.max=4;meter.value=complete;meter.setAttribute('aria-label','Выполнено заданий');summary.append(meter);main.append(summary);
+  const grid=el('div','quest-grid');
+  items.forEach(([title,description,done,target],i)=>{const row=el('article','quest'+(done?' done':'')),body=el('div'),mark=el('span','quest-mark',done?'✓':['☀','✧','▱','✎'][i]);mark.setAttribute('aria-hidden','true');row.append(mark);body.append(el('h3','',title),el('p','',description),el('p','quest-status',done?'Выполнено':'Ещё впереди'));if(!done)body.append(button('Перейти ↗',()=>showTab(target,true),'link-button'));row.append(body);grid.append(row);});main.append(grid);
   main.append(el('p','small',mode==='demo'?'Задания демо не дают наград. Карта дня хранится на устройстве; остальные отметки — до закрытия сессии.':'Карта дня подтверждается сервером. Остальные отметки относятся к текущей сессии и не начисляют награды.'));
   if(mode==='signed'&&verified){const b=operation(progress.claimedToday?'Награда уже получена':'Получить награду дня',claimDaily);b.id='claim';b.disabled=busy||!writes||progress.claimedToday;main.append(b);if(!writes)main.append(el('p','small','Награды отключены до подтверждения выпуска владельцем.'));}
 }

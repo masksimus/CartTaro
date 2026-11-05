@@ -23,14 +23,36 @@ test('unsigned first visit, five screens, daily persistence and 22 collection sl
   await open(page);await expect(page.locator('#mode')).toContainText('ЛОКАЛЬНОЕ ДЕМО');
   await page.screenshot({path:`test-results/v6/today-${test.info().project.name}.png`,fullPage:true});
   await page.getByRole('button',{name:'Открыть карту дня',exact:true}).last().click();
+  await page.screenshot({path:`test-results/v6/reveal-${test.info().project.name}.png`,fullPage:true,animations:'disabled'});
   const name=await page.locator('#daily-result h2').textContent();await page.getByRole('button',{name:'Сохранить',exact:true}).click();
   await tab(page,'collection');await expect(page.locator('.collection-card')).toHaveCount(22);await expect(page.locator('.collection-card:not(.locked)')).toHaveCount(1);
   expect(await page.locator('.collection-card img').first().evaluate(n=>Math.abs(n.getBoundingClientRect().height/n.getBoundingClientRect().width-5/3)<.02)).toBe(true);
+  await page.screenshot({path:`test-results/v6/collection-${test.info().project.name}.png`,fullPage:true});
   await page.locator('.collection-card:not(.locked)').click();await expect(page.getByRole('dialog')).toBeVisible();await page.getByRole('button',{name:'Закрыть карточку'}).click();
   await tab(page,'quests');await expect(page.locator('.quest.done')).toHaveCount(3);
+  await page.screenshot({path:`test-results/v6/quests-${test.info().project.name}.png`,fullPage:true});
   await tab(page,'profile');await expect(page.getByRole('heading',{name:'Гость атласа'})).toBeVisible();
+  await page.screenshot({path:`test-results/v6/profile-${test.info().project.name}.png`,fullPage:true});
   await page.reload();await page.locator('#daily-result h2').waitFor();await expect(page.locator('#daily-result h2')).toHaveText(name);
   expect(calls.filter(u=>u.includes('/api/'))).toEqual([]);expect(calls.filter(u=>!u.startsWith('http://127.0.0.1:8765/'))).toEqual([]);expect(errors).toEqual([]);
+});
+test('daily journey follows real openings, survives reload and keeps collection after a skipped day',async({page})=>{
+  await page.clock.install({time:new Date('2026-11-05T12:00:00Z')});await open(page);
+  await page.locator('#journey-open').click();await expect(page.locator('.day-track .reached')).toHaveCount(0);
+  expect((await new AxeBuilder({page}).withTags(['wcag2a','wcag2aa','wcag21aa']).analyze()).violations).toEqual([]);
+  await page.getByRole('button',{name:'К карте дня',exact:true}).click();await expect(page.locator('#daily-open')).toBeFocused();await page.locator('#daily-open').click();
+  await page.reload();await expect(page.locator('#journey-open')).toContainText('1');await page.locator('#journey-open').click();await expect(page.locator('.day-track .reached')).toHaveCount(1);
+  await page.screenshot({path:`test-results/v6/journey-${test.info().project.name}.png`,animations:'disabled'});
+  await page.getByRole('button',{name:'Перейти к раскладам',exact:true}).click();await expect(page.locator('#spread-3')).toBeVisible();
+  await page.clock.setSystemTime(new Date('2026-11-06T12:00:00Z'));await page.reload();await page.locator('#daily-open').click();await expect(page.locator('#journey-open')).toContainText('2');
+  await page.clock.setSystemTime(new Date('2026-11-08T12:00:00Z'));await page.reload();await expect(page.locator('#journey-open')).toContainText('0');
+  await tab(page,'collection');await expect(page.locator('.collection-card:not(.locked)')).toHaveCount(2);
+});
+test('primary daily action fits a short phone and scene shortcuts navigate',async({page})=>{
+  await page.setViewportSize({width:test.info().project.use.viewport.width,height:640});await open(page);
+  const action=await page.locator('#daily-open').boundingBox(),nav=await page.locator('.bottom-nav').boundingBox();expect(action.y+action.height).toBeLessThan(nav.y);
+  await page.getByRole('button',{name:'Перейти к заданиям дня',exact:true}).click();await expect(page.locator('.quest')).toHaveCount(4);
+  await tab(page,'today');await page.getByRole('button',{name:'Коллекция: 0 из 22 арканов',exact:true}).click();await expect(page.locator('.collection-card')).toHaveCount(22);
 });
 test('all themes and one/three distinct cards complete with topic-specific text',async({page})=>{
   await open(page);await tab(page,'readings');
@@ -75,7 +97,7 @@ test('signed one/three readings and privacy queue through real API; no client re
 test('forged and expired launches are rejected, no silent login or local reward writes',async({page,request})=>{
   const calls=await fixture(page,request);
   for(const token of [launch('123456789').replace('123456789','987654321'),launch('123456789',3600)]){
-    await open(page,token);await expect(page.locator('#notice')).toContainText('Вход VK не подтверждён');await expect(page.locator('#daily-open')).toBeDisabled();expect(new URL(page.url()).search).toBe('');
+    await open(page,token);await expect(page.locator('#notice')).toContainText('Вход VK не подтверждён');await expect(page.locator('#daily-open')).toBeDisabled();await expect(page.locator('#journey-open')).toBeDisabled();expect(new URL(page.url()).search).toBe('');
   }
   expect(calls.every(c=>c.status===401&&c.method==='GET')).toBe(true);
   await page.locator('#demo').click();await page.locator('#daily-open').click();await expect(page.locator('#mode')).toContainText('ЛОКАЛЬНОЕ ДЕМО');expect(calls).toHaveLength(2);
