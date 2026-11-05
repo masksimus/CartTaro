@@ -15,7 +15,9 @@ export default async function handler(req, res) {
     res.statusCode = 405;
     return res.end(JSON.stringify({ error: 'method_not_allowed' }));
   }
-  if (!storageConfigured()) {
+  const publicRequested = process.env.TARO_V2_PUBLIC_GAME_ENABLED === 'true';
+  const configured = storageConfigured(process.env,{publicGame:publicRequested});
+  if (!configured) {
     res.statusCode = 503;
     return res.end(JSON.stringify({
       service: 'tarot-v2-postgres', ready: false,
@@ -25,7 +27,7 @@ export default async function handler(req, res) {
   try {
     // Runs the same first-time schema/bootstrap path as the real progress
     // endpoint, then an actual SELECT 1. It does not read private user data.
-    const store = getPgStore();
+    const store = getPgStore({publicGame:publicRequested});
     const connected = await store.check();
     // Exercise the actual read-only progress query path using an unused
     // synthetic ID. Never inserts an account, reveals identity or writes.
@@ -37,7 +39,9 @@ export default async function handler(req, res) {
       service: 'tarot-v2-postgres', ready: Boolean(ready),
       database: ready ? 'connected' : 'unavailable',
       progressReadReady: Boolean(ready),
-      rewardsEnabled: process.env.TARO_V2_WRITES_ENABLED === 'true'
+      rewardsEnabled: process.env.TARO_V2_WRITES_ENABLED === 'true' &&
+        (publicRequested ? !/^[a-f0-9]{32}$/i.test(process.env.TARO_V2_TEST_ACCESS_PIN || '') :
+          /^[a-f0-9]{32}$/i.test(process.env.TARO_V2_TEST_ACCESS_PIN || ''))
     }));
   } catch {
     res.statusCode = 503;

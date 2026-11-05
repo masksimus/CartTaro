@@ -5,7 +5,11 @@ import { handleV2 } from '../src/api-v2-handler.mjs';
 
 if (process.env.NODE_ENV !== 'test' || !process.env.PGTEST_URL ||
     process.env.DATABASE_URL !== process.env.PGTEST_URL ||
-    process.env.HOST !== '127.0.0.1') {
+    process.env.HOST !== '127.0.0.1' ||
+    (process.env.TARO_V2_PUBLIC_GAME_ENABLED === 'true' &&
+     (!process.env.PGTEST_V5_URL ||
+      process.env.PGTEST_V5_URL !== process.env.TARO_V5_DATABASE_URL ||
+      process.env.PGTEST_V5_URL === process.env.PGTEST_URL))) {
   throw new Error('CI-only fixture: requires test Postgres and loopback');
 }
 

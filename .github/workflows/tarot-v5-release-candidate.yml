@@ -33,6 +33,7 @@ jobs:
           --health-retries 20
     env:
       PGTEST_URL: postgresql://tarot_ci:fixture_for_ci_only@127.0.0.1:5432/carttaro_ci
+      PGTEST_V5_URL: postgresql://tarot_ci:fixture_for_ci_only@127.0.0.1:5432/carttaro_v5_ci
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
@@ -42,12 +43,16 @@ jobs:
           node-version: '24'
       - name: Install database driver
         run: npm install --ignore-scripts --no-fund --no-audit
+      - name: Create dedicated V5 PostgreSQL database (test fixture only)
+        run: |
+          PGPASSWORD=fixture_for_ci_only psql -h 127.0.0.1 -U tarot_ci -d postgres -v ON_ERROR_STOP=1 -c 'CREATE DATABASE carttaro_v5_ci'
       - name: Validate server and release-client syntax
         run: |
           node --check server/src/api-v2-handler.mjs
           node --check server/src/pg-store.mjs
           node --check release/app.js
           node --check server/test/pg-http-fixture.mjs
+          node --check server/test/v5-database-isolation.test.mjs
           node --check tests/v5-release.spec.mjs
           node --check tests/v5-public-preview.spec.mjs
       - name: Run existing server/PostgreSQL regression tests
@@ -60,6 +65,7 @@ jobs:
       - name: Run signed public-game fixture with real PostgreSQL
         env:
           DATABASE_URL: postgresql://tarot_ci:fixture_for_ci_only@127.0.0.1:5432/carttaro_ci
+          TARO_V5_DATABASE_URL: postgresql://tarot_ci:fixture_for_ci_only@127.0.0.1:5432/carttaro_v5_ci
           VK_PROTECTED_KEY: TARO_E2E_FIXTURE_ONLY_NEVER_PRODUCTION
           TARO_V2_PUBLIC_GAME_ENABLED: 'true'
           TARO_V2_WRITES_ENABLED: 'true'

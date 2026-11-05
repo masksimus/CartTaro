@@ -66,11 +66,11 @@ export async function handleV2(req, res, action) {
     return json(res, 400, { error: 'body_not_allowed' });
   }
 
-  const storageReadyForRequests = storageConfigured();
-  // Explicit opt-in for normal gameplay. Never implicitly convert the existing
-  // developer pilot into a public economy; both modes fail closed when mixed.
-  const writesFlag = process.env.TARO_V2_WRITES_ENABLED === 'true';
+  // Select the database BEFORE reading accounts or enabling any rewards.
+  // A public game can never silently fall back to V2 developer progress.
   const publicRequested = process.env.TARO_V2_PUBLIC_GAME_ENABLED === 'true';
+  const storageReadyForRequests = storageConfigured(process.env, {publicGame:publicRequested});
+  const writesFlag = process.env.TARO_V2_WRITES_ENABLED === 'true';
   const developerPilot = storageReadyForRequests && writesFlag &&
     testPinConfigured() && !publicRequested;
   const publicGame = storageReadyForRequests && writesFlag &&
@@ -132,7 +132,7 @@ export async function handleV2(req, res, action) {
     return json(res, 200, { authorized: true });
   }
   try {
-    const store = getPgStore();
+    const store = getPgStore({publicGame:publicRequested});
     const data = action === 'progress' ?
       await store.readProgress(user.userId) :
       action === 'claim' ? await store.claimDaily(user.userId) :
