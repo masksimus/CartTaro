@@ -1,0 +1,78 @@
+{
+  "id": "2oRAx41gCd5niNiq300021Rno",
+  "createdAt": "2026-11-05T09:56:05.286Z",
+  "status": "finished",
+  "target": "rawcdn.githack.com",
+  "request": {
+    "request": {
+      "method": "GET",
+      "path": "/masksimus/CartTaro/e03fc1f80cb140f687ee5ccfa9af007ade007b88/v6/demo.html"
+    }
+  },
+  "probes": [
+    {
+      "country": "RU",
+      "city": "Moscow",
+      "network": "Timeweb",
+      "status": "finished",
+      "http": 200,
+      "timings": {
+        "total": 318,
+        "dns": 16,
+        "tcp": 37,
+        "tls": 50,
+        "firstByte": 209,
+        "download": 6
+      },
+      "game_html": true
+    },
+    {
+      "country": "RU",
+      "city": "Saint Petersburg",
+      "network": "Selectel",
+      "status": "finished",
+      "http": 200,
+      "timings": {
+        "total": 313,
+        "dns": 17,
+        "tcp": 8,
+        "tls": 15,
+        "firstByte": 272,
+        "download": 1
+      },
+      "game_html": true
+    },
+    {
+      "country": "RU",
+      "city": "Moscow",
+      "network": "Cloud.ru",
+      "status": "finished",
+      "http": 200,
+      "timings": {
+        "total": 345,
+        "dns": 35,
+        "tcp": 45,
+        "tls": 51,
+        "firstByte": 213,
+        "download": 1
+      },
+      "game_html": true
+    },
+    {
+      "country": "DE",
+      "city": "Falkenstein",
+      "network": "Hetzner Online",
+      "status": "finished",
+      "http": 200,
+      "timings": {
+        "total": 342,
+        "dns": 13,
+        "tcp": 7,
+        "tls": 18,
+        "firstByte": 299,
+        "download": 5
+      },
+      "game_html": true
+    }
+  ]
+}

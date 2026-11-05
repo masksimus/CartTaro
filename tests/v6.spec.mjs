@@ -1,6 +1,8 @@
 import { test,expect } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
 import { createHmac,randomInt } from 'node:crypto';
+import { pathToFileURL } from 'node:url';
+import { resolve } from 'node:path';
 const BACKEND='http://127.0.0.1:8788',SECRET='TARO_E2E_FIXTURE_ONLY_NEVER_PRODUCTION';
 function launch(id=String(randomInt(100000000,900000000)),age=0){const p=new URLSearchParams({vk_app_id:'54582199',vk_user_id:id,vk_platform:'mobile_web',vk_ts:String(Math.floor(Date.now()/1000)-age)});p.sort();p.set('sign',createHmac('sha256',SECRET).update(p.toString()).digest('base64url'));return p.toString();}
 async function open(page,s=''){await page.goto('/v6/index.html'+(s?'?'+s:''));await expect(page.locator('#mode')).not.toHaveText('Открываем колоду…');}
@@ -60,6 +62,11 @@ test('real signed PostgreSQL flow: daily claim/draw deduplicated and restored af
   expect(new URL(page.url()).search).toBe('');const stored=await page.evaluate(()=>JSON.stringify({...localStorage}));expect(stored).not.toContain(token);expect(stored).not.toContain(id);
   expect(calls.filter(x=>x.path.endsWith('/daily/draw'))).toHaveLength(1);expect(calls.filter(x=>x.path.endsWith('/daily/claim'))).toHaveLength(1);
 });
+test('canonical index-to-root redirect remains playable on offline reload',async({page,context})=>{
+  await page.goto('http://127.0.0.1:8766/v6/index.html');await expect(page.locator('#daily-open')).toBeVisible();
+  expect(new URL(page.url()).pathname).toBe('/v6/');await page.evaluate(()=>navigator.serviceWorker.ready);await page.waitForFunction(()=>navigator.serviceWorker.controller);
+  await page.locator('#daily-open').click();await context.setOffline(true);await page.reload();await expect(page.locator('#daily-result')).toBeVisible();
+});
 test('signed one/three readings and privacy queue through real API; no client rewards',async({page,request})=>{
   await fixture(page,request);await open(page,launch());await expect(page.locator('#mode')).toContainText('ПОДПИСЬ ПРОВЕРЕНА');await tab(page,'readings');
   for(const n of [1,3]){await page.locator(`#spread-${n}`).click();await expect(page.locator('#reading-deck button')).toHaveCount(n);for(const c of await page.locator('#reading-deck button').all())await c.click();await expect(page.locator('#reading-results article')).toHaveCount(n);}
@@ -87,6 +94,11 @@ test('503 recovery can switch to local demo without carrying credentials or serv
 test('exported static showcase ignores even well-formed signed credentials',async({page})=>{
   const calls=[];page.on('request',r=>{if(r.url().includes('/api/'))calls.push(r.url());});
   await page.goto('/v6/dist/index.html?'+launch());await expect(page.locator('#mode')).toContainText('ЛОКАЛЬНОЕ ДЕМО');await page.locator('#daily-open').click();await expect(page.locator('#daily-result')).toBeVisible();expect(new URL(page.url()).search).toBe('');expect(calls).toEqual([]);
+});
+test('downloadable single HTML opens from disk with the network disabled',async({page,context})=>{
+  const network=[],errors=[];page.on('request',r=>{if(/^https?:/.test(r.url()))network.push(r.url());});page.on('pageerror',e=>errors.push(e.message));
+  await context.setOffline(true);await page.goto(pathToFileURL(resolve('../v6/dist/arcana-offline.html')).href);await page.locator('#daily-open').click();await expect(page.locator('#daily-result')).toBeVisible();
+  await tab(page,'readings');await page.locator('#spread-3').click();for(const card of await page.locator('#reading-deck button').all())await card.click();await expect(page.locator('#reading-results article')).toHaveCount(3);expect(network).toEqual([]);expect(errors).toEqual([]);
 });
 test('reduced motion, five-screen accessibility, 44px targets and no horizontal overflow',async({page})=>{
   await page.emulateMedia({reducedMotion:'reduce'});await open(page);
