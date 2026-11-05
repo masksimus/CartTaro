@@ -47,7 +47,7 @@ export async function handleV2(req, res, action) {
   const expectedMethod = ['progress', 'status', 'spreadOne', 'spreadThree'].includes(action) ? 'GET' : 'POST';
   res.setHeader('Allow', expectedMethod);
 
-  if (!['progress', 'claim', 'draw', 'status', 'access', 'spreadOne', 'spreadThree'].includes(action)) {
+  if (!['progress', 'claim', 'draw', 'status', 'access', 'spreadOne', 'spreadThree', 'deletionRequest'].includes(action)) {
     return json(res, 404, { error: 'not_found' });
   }
   if (req.method !== expectedMethod) {
@@ -166,6 +166,18 @@ export async function handleV2(req, res, action) {
   }
   if (!storageReadyForRequests) {
     return json(res, 503, { error: 'storage_not_configured' });
+  }
+  if (action === 'deletionRequest') {
+    // V6 privacy requests are independent of rewards. Never use the developer
+    // database or the legacy delegated verifier for this new write operation.
+    if (!publicRequested || typeof key !== 'string' || key.length < 16) {
+      return json(res, 503, { error: 'privacy_not_configured' });
+    }
+    try {
+      return json(res, 202, await getPgStore({ publicGame: true }).requestDeletion(user.userId));
+    } catch {
+      return json(res, 503, { error: 'storage_unavailable' });
+    }
   }
   if ((action === 'claim' || action === 'draw' || action === 'access') && !writesEnabled) {
     return json(res, 503, { error: 'rewards_disabled' });

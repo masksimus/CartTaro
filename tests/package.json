@@ -4,9 +4,11 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "test": "playwright test --config playwright.config.mjs"
+    "test": "playwright test --config playwright.config.mjs",
+    "test:v6": "playwright test --config v6.config.mjs"
   },
   "devDependencies": {
+    "@axe-core/playwright": "4.11.0",
     "@playwright/test": "1.64.1"
   }
 }

@@ -3,10 +3,16 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
+  "scripts": {
+    "build:v6": "node scripts/v6-content.mjs && node scripts/v6-art.mjs && node scripts/v6-build.mjs && node scripts/v6-standalone.mjs",
+    "test": "node --test --test-reporter=spec server/test/*.test.mjs",
+    "test:v6": "npm --prefix tests run test:v6"
+  },
   "engines": {
     "node": ">=24"
   },
   "dependencies": {
+    "@vkontakte/vk-bridge": "2.14.0",
     "pg": "8.16.3"
   }
 }

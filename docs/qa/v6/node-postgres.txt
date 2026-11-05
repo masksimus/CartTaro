@@ -1,0 +1,62 @@
+
+> carttaro-v2-postgres-preview@0.1.0 test
+> node --test --test-reporter=spec server/test/*.test.mjs
+
+✔ the public status emits no secret, user IDs or database URL (1.585013ms)
+✔ real HMAC + Postgres API only grants one reward and one card per day (85.76051ms)
+✔ forged, wrong-origin, query, body and unsigned API access denied (1.683555ms)
+✔ V2 writes remain blocked without the explicit gate, even when Postgres is ready (7.534392ms)
+✔ pilot PIN allows non-mutating access check for signed VK launch only (1.438773ms)
+✔ wrong or absent tester PIN never grants any balance or card in PostgreSQL (8.280958ms)
+✔ writes remain disabled if developer PIN configuration is absent (0.928258ms)
+✔ signed free tarot spreads are server-randomized and NEVER change existing daily economy (11.025965ms)
+✔ spreads fail closed on invalid HMAC/expired session/wrong origin and method (1.647981ms)
+✔ health probe tests real SQL connection and isolated schema without exposing secrets (31.56431ms)
+✔ health endpoint does not accept writes (1.475848ms)
+✔ without database URL, health fails closed, no fake ready status (0.292723ms)
+✔ new user has no progress; persistent store bootstraps isolated schema (53.515696ms)
+✔ concurrent claims across TWO independent pools grant exactly once (280.656067ms)
+✔ daily draw is unique across parallel calls, persists after pool recreation (145.717984ms)
+✔ streak cycles, skips reset and totals persist between days and store instances (66.966982ms)
+✔ per-user isolation, invalid input, invalid draw, no phantom rewards (39.919284ms)
+✔ canonical HMAC matches VK published launch-parameter example (14.499118ms)
+✔ VK signed launch: accepted only when app, user, timestamp and HMAC are valid (3.059186ms)
+✔ SQLite claim: exactly once per UTC day, streaks reset after a missed day (8.793402ms)
+✔ Server-selected daily card is stable, unique and isolated per user (2.640136ms)
+✔ SQLite state survives process restart and concurrent store handles cannot double-credit (21.312382ms)
+✔ HTTP rejects unauthorized/expired users, unapproved origins and client-submitted balances (75.811339ms)
+✔ exactly 22 unique original major arcana with bounded text fields (1.364253ms)
+✔ one-card reading contains a reflection, not account balance or tokens (0.548821ms)
+✔ three cards are unique even when random generator chooses index zero (0.369844ms)
+✔ inverted and upright interpretations differ, advice remains thoughtful (0.209781ms)
+✔ unsupported counts and malformed random output fail closed (0.640548ms)
+✔ real crypto randomizer returns valid unique cards across repeated sessions (2.714544ms)
+✔ secret is read from absolute file, without preferring unsafe inline environment values (2.126263ms)
+✔ staging preflight refuses placeholder hosts, public secrets, and secret inside repo (0.586182ms)
+✔ online backup preserves committed crystals and arcana without overwriting an existing copy (15.16382ms)
+✔ signed API enforces a per-user 60-second request quota with 429, then resets (47.00743ms)
+✔ dedicated game storage is mandatory and must not reuse the developer DB (111.522823ms)
+✔ V5 production cannot award crystals without explicit release approval (1.217674ms)
+✔ V5 Preview access is explicitly allowlisted, signed and fail-closed (58.030096ms)
+✔ V5 UAT delegates only signed launch to fixed read-only V4 verifier (57.720404ms)
+✔ demo daily reveal is idempotent, resets at UTC midnight, and accrues no rewards (3.006276ms)
+✔ corrupt or unavailable browser storage cannot prevent startup (0.694667ms)
+✔ all 22 cards have local original art and four distinct topic prompts (21.503554ms)
+✔ one/three demo spreads have unique valid cards and reject other sizes (0.55763ms)
+✔ launch parsing strips unrelated fields and rejects ambiguous credentials (0.561678ms)
+✔ remote state is validated instead of accepting impossible balances or cards (0.370624ms)
+✔ signed deletion request is idempotent and queues without deleting progress or enabling rewards (121.78184ms)
+✔ privacy endpoint rejects unsigned, forged, query, body, wrong method and foreign origin (0.807542ms)
+✔ readiness reports missing server key without exposing any secrets (2.559707ms)
+✔ valid signed VK launch is accepted without returning user ID or raw token (0.686446ms)
+✔ cannot bypass HMAC by changing user ID, app ID or timestamp (2.558453ms)
+✔ no query, body or cross-origin browser calls to signed endpoint (0.630914ms)
+✔ public readiness never includes user progress and is accurate when configured (0.178303ms)
+ℹ tests 50
+ℹ suites 0
+ℹ pass 50
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 2755.239701

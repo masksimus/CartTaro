@@ -1,0 +1,9 @@
+node_modules/
+tests/node_modules/
+tests/report/
+tests/test-results/
+.env
+.env.*
+!.env.example
+v6/dist/
+.vercel/
