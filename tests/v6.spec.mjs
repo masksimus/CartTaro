@@ -23,6 +23,7 @@ test('unsigned first visit, five screens, daily persistence and 22 collection sl
   await page.getByRole('button',{name:'Открыть карту дня',exact:true}).last().click();
   const name=await page.locator('#daily-result h2').textContent();await page.getByRole('button',{name:'Сохранить',exact:true}).click();
   await tab(page,'collection');await expect(page.locator('.collection-card')).toHaveCount(22);await expect(page.locator('.collection-card:not(.locked)')).toHaveCount(1);
+  expect(await page.locator('.collection-card img').first().evaluate(n=>Math.abs(n.getBoundingClientRect().height/n.getBoundingClientRect().width-5/3)<.02)).toBe(true);
   await page.locator('.collection-card:not(.locked)').click();await expect(page.getByRole('dialog')).toBeVisible();await page.getByRole('button',{name:'Закрыть карточку'}).click();
   await tab(page,'quests');await expect(page.locator('.quest.done')).toHaveCount(3);
   await tab(page,'profile');await expect(page.getByRole('heading',{name:'Гость атласа'})).toBeVisible();
@@ -43,6 +44,7 @@ test('all themes and one/three distinct cards complete with topic-specific text'
 });
 test('offline reload after cache install and reveal with all remote origins blocked',async({page,context})=>{
   await open(page);await page.evaluate(()=>navigator.serviceWorker.ready);await page.waitForFunction(()=>navigator.serviceWorker.controller);
+  await page.goto('/v6/');
   await context.setOffline(true);await page.reload();await expect(page.locator('#mode')).toContainText('ЛОКАЛЬНОЕ ДЕМО');
   await page.locator('#daily-open').click();await expect(page.locator('#daily-result')).toBeVisible();await tab(page,'readings');await page.locator('#spread-3').click();
   for(const card of await page.locator('#reading-deck button').all())await card.click();await expect(page.locator('#reading-results article')).toHaveCount(3);

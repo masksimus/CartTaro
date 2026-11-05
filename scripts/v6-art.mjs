@@ -41,4 +41,13 @@ for (let id=0;id<22;id++) {
 }
 await writeFile(new URL('back.svg',root),`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 500"><rect width="300" height="500" rx="13" fill="#293e36"/><g fill="none" stroke="#dccda8" stroke-width="1.4">${frame}${circle(150,250,87)}${circle(150,250,75)}${circle(150,250,55)}${rays(150,250,60,70,32)}${star(150,250,48)}${circle(150,250,15)}${stem(78,387)}${stem(222,387,-1)}${star(150,122,18)}${star(150,378,18)}</g><text x="150" y="66" text-anchor="middle" font-family="Georgia,serif" font-size="12" letter-spacing="5" fill="#dccda8">ARCANA</text><text x="150" y="461" text-anchor="middle" font-family="Georgia,serif" font-size="12" letter-spacing="5" fill="#dccda8">XXII</text></svg>\n`);
 await writeFile(new URL('grain.svg',root),'<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100"><g fill="#574f34" opacity=".07"><circle cx="13" cy="17" r=".7"/><circle cx="72" cy="33" r=".7"/><circle cx="43" cy="83" r=".8"/><circle cx="91" cy="68" r=".6"/></g></svg>\n');
+const icons={
+  today:'<circle cx="16" cy="16" r="5"/><path d="M16 2v5m0 18v5M2 16h5m18 0h5M6 6l4 4m12 12 4 4M6 26l4-4M22 10l4-4"/>',
+  readings:'<path d="m5 8 9-3 6 21-9 3zM18 5l9 3-6 21-5-2M9 13l5-1m-3 6 4-1"/>',
+  collection:'<path d="M4 6h9q3 0 3 3 0-3 3-3h9v21h-9q-3 0-3 3 0-3-3-3H4zM16 9v18M8 11h4m-4 5h4m8-5h4m-4 5h4"/>',
+  quests:'<path d="M9 5h15v23H5V9m4-7v8H2M10 17l3 3 7-8M10 24h10"/>',
+  profile:'<circle cx="16" cy="16" r="13"/><circle cx="16" cy="12" r="4"/><path d="M8 25q1-8 8-8t8 8"/>',
+};
+for(const [name,shape] of Object.entries(icons))await writeFile(new URL(`nav-${name}.svg`,root),`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><g fill="none" stroke="#293e36" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">${shape}</g></svg>\n`);
+await writeFile(new URL('seal.svg',root),`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 160"><g fill="none" stroke="#94452f" stroke-width="1.2"><circle cx="80" cy="80" r="73"/><circle cx="80" cy="80" r="67" stroke-dasharray="1 4"/><path d="M40 113q-22-37 5-68m75 68q22-37-5-68M40 97l-9-10m8-2-9-11m10-2-6-12m9 1-3-13m80 49 9-10m-8-2 9-11m-10-2 6-12m-9 1 3-13M48 123q32-12 64 0"/></g><text x="80" y="102" text-anchor="middle" font-family="Georgia,serif" font-size="67" fill="#94452f">А</text><text x="80" y="43" text-anchor="middle" font-family="Georgia,serif" font-size="10" letter-spacing="3" fill="#94452f">XXII</text></svg>\n`);
 console.log('Generated 22 original vector engravings, card back and paper texture.');

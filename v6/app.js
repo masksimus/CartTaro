@@ -40,7 +40,7 @@ function progressMeter(){
   const meter=el('progress','meter');meter.max=22;meter.value=count;meter.setAttribute('aria-label','Собрано арканов');
   section.append(row,meter,el('p','small',count===22?'Атлас собран. У знакомых карт всегда есть новые вопросы.':`Следующая глава — ${count<5?'5':count<10?'10':'22'} открытых арканов. Возвращайтесь за новой картой.`));return section;
 }
-function topicPicker(){const group=el('div','topics');group.setAttribute('role','group');group.setAttribute('aria-label','Тема размышления');TOPICS.forEach(t=>{const b=button('',()=>{topic=t.id;render();});b.setAttribute('aria-pressed',String(topic===t.id));b.append(el('span','topic-icon',t.icon),el('span','',t.name));group.append(b);});return group;}
+function topicPicker(){const group=el('div','topics');group.setAttribute('role','group');group.setAttribute('aria-label','Тема размышления');TOPICS.forEach((t,i)=>{const b=button('',()=>{topic=t.id;render();});b.setAttribute('aria-pressed',String(topic===t.id));b.append(el('span','topic-icon',String(i+1).padStart(2,'0')),el('span','',t.name));group.append(b);});return group;}
 function renderToday(){
   const head=el('header','today-heading'),date=new Intl.DateTimeFormat('ru',{day:'numeric',month:'long',timeZone:'UTC'}).format(new Date(progress.dayUtc+'T12:00:00Z'));
   head.append(el('p','eyebrow',`${date} · ${mode==='demo'?'дата устройства':'дата сервера'} · UTC`),el('h1','',progress.dailyCardDrawn?'Ваша история сегодня':'Маленькая пауза.\nНовый взгляд.'),el('p','intro',progress.dailyCardDrawn?'Одна карта. Столько способов услышать себя.':'Сделайте вдох. Коснитесь колоды и найдите мысль, которую возьмёте с собой.'));
@@ -72,7 +72,7 @@ async function drawDaily(){
 function renderReadings(){
   main.append(header('ЗАЛ РАСКЛАДОВ','О чём поговорим?','Выберите тему. Карты предложат вопросы — ответы остаются за вами.'),topicPicker());
   const options=el('div','spread-options');
-  for(const count of [1,3]){const b=operation('',()=>drawSpread(count),'');b.id=`spread-${count}`;b.disabled=busy||(mode==='signed'&&!verified);b.append(el('strong','',count===1?'Одна карта':'Три карты'),el('small','',count===1?'Один вопрос.\nНовый угол зрения.':'Опыт, настоящее\nи следующий шаг.'));options.append(b);}main.append(options);
+  for(const count of [1,3]){const b=operation('',()=>drawSpread(count),'');b.id=`spread-${count}`;b.disabled=busy||(mode==='signed'&&!verified);b.append(el('span','spread-number',count===1?'I':'III'),el('strong','',count===1?'Одна карта':'Три карты'),el('small','',count===1?'Один вопрос.\nНовый угол зрения.':'Опыт, настоящее\nи следующий шаг.'));options.append(b);}main.append(options);
   if(!spread){main.append(el('p','subtle','Расклады не расходуют и не начисляют награды.'));return;}
   const activeTopic=TOPICS.find(t=>t.id===spreadTopic);main.append(el('p','eyebrow',`Расклад · ${activeTopic.name}`));
   const deck=el('div','spread-deck'+(spread.cards.length===1?' single':''));deck.id='reading-deck';
@@ -96,8 +96,10 @@ async function drawSpread(count){
 }
 function renderCollection(){
   main.append(header('ВАШ ЛИЧНЫЙ АТЛАС','Коллекция арканов',`${progress.arcana.length} из 22 историй открыто. Каждая карта — новая грань знакомого мира.`));
+  const folio=el('div','catalog-folio');folio.append(el('span','','СТАРШИЕ АРКАНЫ'),el('span','',`${String(progress.arcana.length).padStart(2,'0')} / XXII`));main.append(folio);
   const grid=el('div','collection-grid');grid.id='collection-grid';
-  ARCANA.forEach(c=>{const known=progress.arcana.includes(c.id),b=button('',()=>showDetail(c.id,known),'collection-card'+(known?'':' locked'));b.setAttribute('aria-label',known?`Открыто: ${c.name}`:`Не открыт: аркан ${c.id}`);b.append(picture(c.id,!known),el('span','',known?c.name:'Неизвестный аркан'),el('span','number',String(c.id).padStart(2,'0')));grid.append(b);});main.append(grid);
+  const catalog=[...ARCANA].sort((a,b)=>Number(progress.arcana.includes(b.id))-Number(progress.arcana.includes(a.id)));
+  catalog.forEach(c=>{const known=progress.arcana.includes(c.id),b=button('',()=>showDetail(c.id,known),'collection-card'+(known?'':' locked'));b.setAttribute('aria-label',known?`Открыто: ${c.name}`:`Не открыт: аркан ${c.id}`);b.append(picture(c.id,!known),el('span','',known?c.name:'Неизвестный аркан'),el('span','number',String(c.id).padStart(2,'0')));grid.append(b);});main.append(grid);
 }
 function showDetail(id,known){
   const c=ARCANA[id],root=$('detail-content');root.replaceChildren();const heading=el('h2','',known?c.name:'Ещё одна история впереди');heading.id='detail-title';
@@ -118,7 +120,7 @@ async function claimDaily(){
   catch(e){if(epoch===generation)handleError(e);}finally{if(epoch===generation){setBusy(false);render();}}
 }
 function renderProfile(){
-  const head=el('div','profile-title');head.append(el('div','profile-emblem','✳'),el('p','eyebrow','ПУТЕШЕСТВЕННИК'),el('h1','',mode==='demo'?'Гость атласа':nickname||'Ваш путь'),el('p','intro',mode==='demo'?'Ваши открытия живут только в этом браузере. Демо не создаёт аккаунт VK.':verified?'Ваши карты и серия дней подтверждены сервером.':'Откройте приложение через VK для подтверждения входа.'));main.append(head);
+  const head=el('div','profile-title'),seal=el('img','profile-emblem');seal.src='./assets/seal.svg';seal.alt='';seal.width=100;seal.height=100;head.append(seal,el('p','eyebrow','ПУТЕШЕСТВЕННИК'),el('h1','',mode==='demo'?'Гость атласа':nickname||'Ваш путь'),el('p','intro',mode==='demo'?'Ваши открытия живут только в этом браузере. Демо не создаёт аккаунт VK.':verified?'Ваши карты и серия дней подтверждены сервером.':'Откройте приложение через VK для подтверждения входа.'));main.append(head);
   const stats=el('div','stats');[[progress.arcana.length,'из 22 арканов'],[progress.streak,'дней подряд'],[mode==='demo'?'—':progress.crystals,'наград на сервере']].forEach(([value,label])=>{const stat=el('div','stat');stat.append(el('strong','',value),el('span','',label));stats.append(stat);});main.append(stats);
   if(mode==='signed'&&verified){main.append(operation('Обновить прогресс с сервера',loadSigned,''),button('Показать моё имя из VK',loadNickname,'link-button'));}
   const label=el('label','settings'),check=el('input');check.type='checkbox';check.checked=document.body.classList.contains('reduce-motion');check.addEventListener('change',()=>{document.body.classList.toggle('reduce-motion',check.checked);try{storage.setItem('arcana.v6.motion',check.checked?'reduce':'system');}catch{}});label.append(check,el('span','','Меньше анимации'));main.append(label);

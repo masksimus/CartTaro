@@ -1,7 +1,9 @@
 import { readdir, readFile, writeFile, cp, mkdir } from 'node:fs/promises';
 import { createHash } from 'node:crypto';
 const root=new URL('../v6/',import.meta.url);
-const files=['index.html','style.css','startup.js','app.js','game.mjs','content.mjs','LICENSES.txt','assets/back.svg','assets/grain.svg','assets/serif.woff','assets/sans.woff','assets/FONT-LICENSE.txt','vendor/vk-bridge-2.14.0.min.js','vendor/VK-BRIDGE-LICENSE.txt',...(await readdir(new URL('assets/cards/',root))).sort().map(x=>'assets/cards/'+x)];
+const demoHTML=(await readFile(new URL('index.html',root),'utf8')).replace('<head>','<head>\n  <meta name="arcana-demo-only" content="true">');
+await writeFile(new URL('demo.html',root),demoHTML);
+const files=['index.html','demo.html','style.css','startup.js','app.js','game.mjs','content.mjs','LICENSES.txt','assets/back.svg','assets/grain.svg','assets/serif.woff','assets/sans.woff','assets/FONT-LICENSE.txt','assets/seal.svg',...['today','readings','collection','quests','profile'].map(x=>'assets/nav-'+x+'.svg'),'vendor/vk-bridge-2.14.0.min.js','vendor/VK-BRIDGE-LICENSE.txt',...(await readdir(new URL('assets/cards/',root))).sort().map(x=>'assets/cards/'+x)];
 const vendor=await readFile(new URL('../node_modules/@vkontakte/vk-bridge/dist/browser.min.js',import.meta.url));
 if(!vendor.equals(await readFile(new URL('vendor/vk-bridge-2.14.0.min.js',root))))throw Error('Vendored Bridge differs from pinned package');
 const hash=createHash('sha256');for(const file of files)hash.update(file).update(await readFile(new URL(file,root)));
