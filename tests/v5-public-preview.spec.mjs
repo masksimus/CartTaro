@@ -34,13 +34,13 @@ test('V5 preview: 3 Android sizes, real images, no tester controls, fail-closed 
   expect(api.status()).toBe(200);
   expect(await api.json()).toMatchObject({
     service:'tarot-v2-postgres',appId:54582199,
-    storageConfigured:true,mode:'read_only',rewardsEnabled:false
+    storageConfigured:true,mode:'public_game',rewardsEnabled:true
   });
   const health=await request.get(BASE+'/api/v2/health',{timeout:15000});
   expect(health.status()).toBe(200);
   expect(await health.json()).toMatchObject({
     service:'tarot-v2-postgres',database:'connected',
-    ready:true,progressReadReady:true,rewardsEnabled:false
+    ready:true,progressReadReady:true,rewardsEnabled:true
   });
   // The temporary UAT verifier accepts only valid signed VK launches.
   // Anonymous access always fails closed, without reading personal data.
