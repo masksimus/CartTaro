@@ -67,16 +67,22 @@ export async function handleV2(req, res, action) {
   }
 
   const storageReadyForRequests = storageConfigured();
-  // No global write enable without a second, private developer-only factor.
-  const writesEnabled = storageReadyForRequests &&
-    process.env.TARO_V2_WRITES_ENABLED === 'true' && testPinConfigured();
+  // Explicit opt-in for normal gameplay. Never implicitly convert the existing
+  // developer pilot into a public economy; both modes fail closed when mixed.
+  const writesFlag = process.env.TARO_V2_WRITES_ENABLED === 'true';
+  const publicRequested = process.env.TARO_V2_PUBLIC_GAME_ENABLED === 'true';
+  const developerPilot = storageReadyForRequests && writesFlag &&
+    testPinConfigured() && !publicRequested;
+  const publicGame = storageReadyForRequests && writesFlag &&
+    publicRequested && !testPinConfigured();
+  const writesEnabled = developerPilot || publicGame;
   if (action === 'status') {
     return json(res, 200, {
       service: 'tarot-v2-postgres',
       appId: APP_ID,
       storageConfigured: storageReadyForRequests,
       rewardsEnabled: writesEnabled,
-      mode: writesEnabled ? 'developer_pilot' : 'read_only'
+      mode: publicGame ? 'public_game' : developerPilot ? 'developer_pilot' : 'read_only'
     });
   }
 
@@ -113,9 +119,11 @@ export async function handleV2(req, res, action) {
   if ((action === 'claim' || action === 'draw' || action === 'access') && !writesEnabled) {
     return json(res, 503, { error: 'rewards_disabled' });
   }
-  if (action === 'access' || action === 'claim' || action === 'draw') {
-    // Double gate: authenticated VK launch + invite PIN held only in memory.
-    // No PINs are logged or sent in URLs/bodies/cookies.
+  if (action === 'access' && !developerPilot) {
+    return json(res, 404, { error: 'not_found' });
+  }
+  if (developerPilot && (action === 'access' || action === 'claim' || action === 'draw')) {
+    // Preserve the developer-only PIN gate while the public mode stays off.
     if (!testPinMatches(req.headers?.['x-taro-test-pin'])) {
       return json(res, 403, { error: 'test_access_denied' });
     }
