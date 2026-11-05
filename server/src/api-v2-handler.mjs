@@ -6,6 +6,7 @@
 import { verifyVkLaunch, AuthError } from './auth.mjs';
 import { timingSafeEqual } from 'node:crypto';
 import { getPgStore, storageConfigured } from './pg-service.mjs';
+import { publicReleaseAllowed } from './release-gate.mjs';
 import { createSpread } from './spreads.mjs';
 
 const APP_ID = 54582199;
@@ -84,7 +85,7 @@ export async function handleV2(req, res, action) {
   const uatReady = !isV5Preview ||
     (process.env.TARO_V5_UAT_MODE === 'true' && allowedUserIdsValid);
   const publicGame = storageReadyForRequests && writesFlag &&
-    publicRequested && !testPinConfigured() && uatReady;
+    publicRequested && !testPinConfigured() && uatReady && publicReleaseAllowed();
   const writesEnabled = developerPilot || publicGame;
   if (action === 'status') {
     return json(res, 200, {

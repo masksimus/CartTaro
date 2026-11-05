@@ -3,6 +3,7 @@ on:
   push:
     branches:
       - feature/tarot-v5-release-candidate
+      - release/tarot-v5-prod-stage-20261105
     paths:
       - 'release/**'
       - 'server/src/**'
@@ -48,6 +49,8 @@ jobs:
           PGPASSWORD=fixture_for_ci_only psql -h 127.0.0.1 -U tarot_ci -d postgres -v ON_ERROR_STOP=1 -c 'CREATE DATABASE carttaro_v5_ci'
       - name: Validate server and release-client syntax
         run: |
+          node --check server/src/release-gate.mjs
+          node --check server/test/v5-production-gate.test.mjs
           node --check server/src/api-v2-handler.mjs
           node --check server/src/pg-store.mjs
           node --check release/app.js

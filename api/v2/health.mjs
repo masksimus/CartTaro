@@ -4,6 +4,7 @@
  * provider error strings. Never awards crystals or draws a card.
  */
 import { getPgStore, storageConfigured } from '../../server/src/pg-service.mjs';
+import { publicReleaseAllowed } from '../../server/src/release-gate.mjs';
 
 export default async function handler(req, res) {
   res.setHeader('Content-Type', 'application/json; charset=utf-8');
@@ -39,7 +40,7 @@ export default async function handler(req, res) {
       service: 'tarot-v2-postgres', ready: Boolean(ready),
       database: ready ? 'connected' : 'unavailable',
       progressReadReady: Boolean(ready),
-      rewardsEnabled: process.env.TARO_V2_WRITES_ENABLED === 'true' &&
+      rewardsEnabled: publicReleaseAllowed() && process.env.TARO_V2_WRITES_ENABLED === 'true' &&
         (publicRequested ? !/^[a-f0-9]{32}$/i.test(process.env.TARO_V2_TEST_ACCESS_PIN || '') :
           /^[a-f0-9]{32}$/i.test(process.env.TARO_V2_TEST_ACCESS_PIN || ''))
     }));
