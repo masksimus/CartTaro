@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="referrer" content="no-referrer">
+  <meta name="robots" content="noindex,nofollow,noarchive">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; font-src 'self'; img-src 'self'; connect-src 'self'; worker-src 'self'; manifest-src 'self'; base-uri 'none'; form-action 'none'">
+  <meta name="theme-color" content="#f5efdf">
+  <title>Путь Арканов · маленький ритуал для себя</title>
+  <script src="./vendor/vk-bridge-2.14.0.min.js"></script>
+  <script src="./startup.js"></script>
+  <link rel="stylesheet" href="./style.css">
+  <script type="module" src="./app.js"></script>
+</head>
+<body>
+  <a class="skip" href="#content">К содержимому</a>
+  <div class="app-shell">
+    <header class="masthead"><a href="./index.html" class="brand" aria-label="Путь Арканов, главная"><span aria-hidden="true">✳</span><span>ПУТЬ<br>АРКАНОВ</span></a><span class="edition">АТЛАС ВНУТРЕННЕГО МИРА<br><b>22 истории · одна ваша</b></span></header>
+    <div class="mode-line"><span id="mode">Открываем колоду…</span><span id="connection"></span></div>
+    <aside id="notice" role="status" aria-live="polite" hidden></aside>
+    <div id="recovery" hidden><button id="retry" type="button">Повторить соединение</button><button id="demo" type="button">Открыть локальное демо</button><p>Если сам адрес не открывается, смените сеть или используйте альтернативную демо-ссылку из отчёта проверки. Перезагрузка интерфейса не устраняет блокировку хостинга.</p></div>
+    <main id="content" tabindex="-1"><h1>Маленькая пауза.<br>Новый взгляд.</h1><p>Колода загружается. Если это занимает больше нескольких секунд, проверьте соединение.</p><button type="button" id="startup-retry" hidden>Загрузить ещё раз</button></main>
+    <footer class="disclaimer">Для размышления, а не предсказания будущего.</footer>
+  </div>
+  <nav class="bottom-nav" aria-label="Разделы игры">
+    <button type="button" data-tab="today" aria-current="page"><span aria-hidden="true">☼</span>Сегодня</button>
+    <button type="button" data-tab="readings"><span aria-hidden="true">▱</span>Расклады</button>
+    <button type="button" data-tab="collection"><span aria-hidden="true">▦</span>Коллекция</button>
+    <button type="button" data-tab="quests"><span aria-hidden="true">✓</span>Задания</button>
+    <button type="button" data-tab="profile"><span aria-hidden="true">◉</span>Профиль</button>
+  </nav>
+  <dialog id="details" aria-labelledby="detail-title"><button type="button" id="close-details" aria-label="Закрыть карточку">×</button><div id="detail-content"></div></dialog>
+  <noscript><p>Для переворота карт нужен JavaScript. Разрешите его для этой страницы и обновите её. Данные ВК без подтверждённого входа недоступны.</p></noscript>
+</body>
+</html>

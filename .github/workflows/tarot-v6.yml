@@ -1,0 +1,87 @@
+name: Tarot V6 - playable game, PostgreSQL and Android QA
+on:
+  push:
+    branches: [feature/tarot-v6-cookie-inspired-20261105]
+  pull_request:
+    branches: [release/tarot-v5-prod-stage-20261105]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  v6:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 18
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: carttaro_ci
+          POSTGRES_USER: tarot_ci
+          POSTGRES_PASSWORD: fixture_for_ci_only
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U tarot_ci -d carttaro_ci"
+          --health-interval 5s --health-timeout 5s --health-retries 20
+    env:
+      PGTEST_URL: postgresql://tarot_ci:fixture_for_ci_only@127.0.0.1:5432/carttaro_ci
+      PGTEST_V5_URL: postgresql://tarot_ci:fixture_for_ci_only@127.0.0.1:5432/carttaro_v5_ci
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '24'
+      - name: Install pinned dependencies
+        run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Syntax and reproducible local assets
+        run: |
+          find server api v6 scripts -type f \( -name '*.mjs' -o -name '*.js' \) -not -path '*/vendor/*' -not -path '*/dist/*' -exec node --check {} \;
+          npm run build:v6
+          git diff --exit-code -- v6
+      - name: Create isolated synthetic game database
+        run: PGPASSWORD=fixture_for_ci_only psql -h 127.0.0.1 -U tarot_ci -d postgres -v ON_ERROR_STOP=1 -c 'CREATE DATABASE carttaro_v5_ci'
+      - name: Real PostgreSQL, HMAC, isolation, privacy and progression tests
+        run: npm test
+      - name: Install pinned browser and accessibility tooling
+        working-directory: tests
+        run: |
+          npm ci --ignore-scripts --no-audit --no-fund
+          npx playwright install --with-deps chromium
+      - name: Start local-only signed API and static server
+        env:
+          NODE_ENV: test
+          DATABASE_URL: postgresql://tarot_ci:fixture_for_ci_only@127.0.0.1:5432/carttaro_ci
+          TARO_V5_DATABASE_URL: postgresql://tarot_ci:fixture_for_ci_only@127.0.0.1:5432/carttaro_v5_ci
+          VK_PROTECTED_KEY: TARO_E2E_FIXTURE_ONLY_NEVER_PRODUCTION
+          TARO_V2_PUBLIC_GAME_ENABLED: 'true'
+          TARO_V2_WRITES_ENABLED: 'true'
+          TARO_V5_PUBLIC_RELEASE_CONFIRMED: 'false'
+          HOST: 127.0.0.1
+          PORT: '8788'
+        run: |
+          python3 -m http.server 8765 --bind 127.0.0.1 > /tmp/v6-static.log 2>&1 &
+          node server/test/pg-http-fixture.mjs > /tmp/v6-api.log 2>&1 &
+          for i in $(seq 1 30); do
+            if curl -fsS http://127.0.0.1:8765/v6/index.html >/dev/null && curl -fsS http://127.0.0.1:8788/api/v2/status >/dev/null; then exit 0; fi
+            sleep 1
+          done
+          exit 1
+      - name: V6 unsigned, signed, offline, security, accessibility and 320/360/393/430px
+        working-directory: tests
+        run: npx playwright test --config v6.config.mjs
+      - name: Existing V5 signed UI regression
+        working-directory: tests
+        env:
+          PLAYWRIGHT_HTML_OUTPUT_DIR: report/v5
+        run: npx playwright test --config playwright.config.mjs --output test-results/v5 --trace off v5-release.spec.mjs
+      - name: Preserve unsigned screenshots, report and portable anonymous demo
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: tarot-v6-qa-and-static-demo
+          retention-days: 14
+          path: |
+            tests/test-results/v6/
+            tests/report/v6/
+            v6/dist/

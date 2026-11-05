@@ -20,7 +20,8 @@ const mapping = {
   'POST /api/v2/access': 'access',
   'GET /api/v2/status': 'status',
   'GET /api/v2/spreads/one': 'spreadOne',
-  'GET /api/v2/spreads/three': 'spreadThree'
+  'GET /api/v2/spreads/three': 'spreadThree',
+  'POST /api/v2/privacy/deletion-request': 'deletionRequest'
 };
 const port = Number(process.env.PORT || 8788);
 createServer(async (req,res) => {

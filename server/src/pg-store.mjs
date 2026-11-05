@@ -210,5 +210,19 @@ export function createPgStore({ pool, now = () => Date.now(),
     });
   }
 
-  return { ensureSchema, readProgress, claimDaily, drawDaily, check };
+  async function requestDeletion(userId) {
+    validateUser(userId);
+    // Additive, lazy V6 migration. Queue only: does not create an account,
+    // delete progress, or award anything. One pending request per signed user.
+    return transact(async client => {
+      await client.query('SELECT pg_advisory_xact_lock($1, $2)', [54582199, 6]);
+      await client.query("CREATE TABLE IF NOT EXISTS tarot_v6_deletion_requests (" +
+        "user_id TEXT PRIMARY KEY CHECK (user_id ~ '^[1-9][0-9]{0,15}$')," +
+        "requested_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP)");
+      await client.query('INSERT INTO tarot_v6_deletion_requests(user_id) VALUES($1) ON CONFLICT DO NOTHING', [userId]);
+      return { status: 'pending' };
+    });
+  }
+
+  return { ensureSchema, readProgress, claimDaily, drawDaily, check, requestDeletion };
 }
