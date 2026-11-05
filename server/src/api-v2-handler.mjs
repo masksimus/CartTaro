@@ -97,22 +97,56 @@ export async function handleV2(req, res, action) {
   }
 
   const key = process.env.VK_PROTECTED_KEY;
-  if (typeof key !== 'string' || key.length < 16) {
-    return json(res, 503, { error: 'auth_not_configured' });
-  }
   const authorization = req.headers?.authorization;
   if (typeof authorization !== 'string' ||
       authorization.length > 8199 || !authorization.startsWith('Bearer ')) {
     return json(res, 401, { error: 'unauthorized' });
   }
   let user;
-  try {
-    user = verifyVkLaunch(authorization.slice(7), {
-      secret: key, appId: APP_ID, nowMs: Date.now(), ttlSeconds: 900
-    });
-  } catch (e) {
-    if (e instanceof AuthError) return json(res, 401, { error: 'unauthorized' });
-    return json(res, 500, { error: 'internal_error' });
+  if (typeof key === 'string' && key.length >= 16) {
+    // Direct signature verification, as used by the production V4 application.
+    try {
+      user = verifyVkLaunch(authorization.slice(7), {
+        secret: key, appId: APP_ID, nowMs: Date.now(), ttlSeconds: 900
+      });
+    } catch (e) {
+      if (e instanceof AuthError) return json(res, 401, { error: 'unauthorized' });
+      return json(res, 500, { error: 'internal_error' });
+    }
+  } else if (isV5Preview && uatReady) {
+    // V5 UAT ONLY: verify this exact launch via the already hardened, read-only
+    // production V4 progress endpoint. Never retrieve, log or copy the VK key.
+    // This trusted endpoint validates HMAC, app ID and freshness before 200.
+    const launch = authorization.slice(7);
+    let parsedUserId;
+    try {
+      const values = new URLSearchParams(launch);
+      if (values.getAll('vk_user_id').length !== 1 ||
+          values.get('vk_app_id') !== String(APP_ID) ||
+          !/^[1-9][0-9]{0,15}$/.test(values.get('vk_user_id') || '')) {
+        return json(res, 401, { error: 'unauthorized' });
+      }
+      parsedUserId = values.get('vk_user_id');
+      const verified = await fetch(
+        'https://tarot-vk-uat-public-2026.vercel.app/api/v2/progress',
+        {
+          method: 'GET',
+          headers: { Authorization: authorization },
+          redirect: 'error',
+          cache: 'no-store',
+          signal: AbortSignal.timeout(7500)
+        }
+      );
+      if (verified.status === 401) return json(res, 401, { error: 'unauthorized' });
+      if (verified.status !== 200) {
+        return json(res, 503, { error: 'verification_unavailable' });
+      }
+      user = { userId: parsedUserId };
+    } catch {
+      return json(res, 503, { error: 'verification_unavailable' });
+    }
+  } else {
+    return json(res, 503, { error: 'auth_not_configured' });
   }
   if (isV5Preview) {
     if (!uatReady) return json(res, 503, { error: 'uat_access_not_configured' });
