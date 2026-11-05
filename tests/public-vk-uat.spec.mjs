@@ -5,7 +5,7 @@ import { test, expect } from '@playwright/test';
  */
 const BASE = 'https://tarot-vk-uat-public-git-742c15-maksimiirina1992-9738s-projects.vercel.app';
 
-test('public VK UAT: mobile page, authentic image, Neon and signature security', async ({page,request}) => {
+test('public VK UAT: live mobile UI, image, Bridge CDN, Neon health', async ({page,request}) => {
   const errors = [];
   page.on('pageerror', error => errors.push(error.message));
   const response = await page.goto(BASE+'/v2-pilot.html', {
@@ -35,10 +35,6 @@ test('public VK UAT: mobile page, authentic image, Neon and signature security',
     storageConfigured:true,rewardsEnabled:false,mode:'read_only'
   });
 
-  const unauthorized = await request.get(BASE+'/api/v2/progress',{timeout:15000});
-  expect(unauthorized.status()).toBe(401);
-  expect((await unauthorized.json()).error).toBe('unauthorized');
-
   // Actual historical JPEG, loaded by Chromium under CSP, not a mock image.
   const painting = await page.evaluate(async () => {
     const img = new Image();
@@ -62,4 +58,12 @@ test('public VK UAT: mobile page, authentic image, Neon and signature security',
   expect(await page.evaluate(() => document.documentElement.scrollWidth))
     .toBeLessThanOrEqual(page.viewportSize().width + 2);
   expect(errors).toEqual([]);
+});
+
+test('VK personal progress must reject anonymous access (production secret required)', async ({request}) => {
+  // This is intentionally a release gate. If it returns 503 auth_not_configured,
+  // Preview lacks the protected VK key. Do not weaken auth or mark the UAT green.
+  const response = await request.get(BASE+'/api/v2/progress',{timeout:15000});
+  expect(response.status()).toBe(401);
+  expect((await response.json()).error).toBe('unauthorized');
 });
