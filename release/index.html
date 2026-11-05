@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="referrer" content="no-referrer">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' https://unpkg.com; style-src 'self'; img-src 'self' https://masksimus.github.io data:; connect-src 'self'; base-uri 'none'; form-action 'none'">
+  <meta name="robots" content="noindex,nofollow,noarchive">
+  <title>Путь Арканов — карты Таро</title>
+  <link rel="stylesheet" href="./style.css">
+  <link rel="stylesheet" href="./reading.css">
+  <link rel="stylesheet" href="./art.css">
+  <script defer src="https://unpkg.com/@vkontakte/vk-bridge@2.14.0/dist/browser.min.js" referrerpolicy="no-referrer"></script>
+  <link rel="stylesheet" href="./release.css">
+  <script defer src="./app.js"></script>
+</head>
+<body>
+  <main class="wrap">
+    <header class="hero">
+      <div class="eyebrow">✦ КАРТЫ ТАРО · СТАРШИЕ АРКАНЫ</div>
+      <h1>Путь Арканов</h1>
+      <p>Историческая колода, карта дня и новые открытия. Соберите все 22 Старших Аркана.</p>
+    </header>
+    <section class="card status-card" aria-labelledby="statusTitle">
+      <h2 id="statusTitle">Ваш прогресс</h2>
+      <p class="status" id="status" role="status" aria-live="polite">Проверяем параметры запуска…</p>
+      <div class="chips">
+        <span class="chip" id="bridgeStatus">VK Bridge: ожидание</span>
+        <span class="chip" id="authStatus">Сервер: ожидание</span>
+      </div>
+      <button type="button" id="retryProgressButton" hidden disabled>Повторить соединение с сервером</button>
+      <button type="button" class="verify-save" id="verifyPersistenceButton" hidden disabled>Проверить сохранение карт и кристаллов</button>
+      <p class="persist-status" id="persistenceStatus" role="status" aria-live="polite"></p>
+    </section>
+    <section class="stats" aria-label="Прогресс на сервере">
+      <div class="card stat"><strong id="crystals">—</strong><span>Кристаллы</span></div>
+      <div class="card stat"><strong id="streak">—</strong><span>Дней подряд</span></div>
+      <div class="card stat"><strong id="unlocked">—</strong><span>Арканов открыто</span></div>
+    </section>
+    <section class="card actions" aria-labelledby="actionsTitle">
+      <h2 id="actionsTitle">Карта дня и награды</h2>
+      <div class="action-row" id="dailyActions" hidden>
+        <button type="button" id="claimButton" disabled>Получить награду дня</button>
+        <button type="button" id="drawButton" disabled>Открыть карту дня</button>
+      </div>
+      <div id="drawResult" class="draw-result" aria-live="polite"></div>
+      <div id="dailyCardDisplay" class="daily-card-display" hidden aria-label="Сохранённая карта дня"></div>
+      <p class="hint">Карта дня и награды сохраняются автоматически. Ежедневная награда выдаётся один раз за сутки (UTC).</p>
+    </section>
+    <section class="card reading-room" aria-labelledby="readingTitle" id="readingRoom">
+      <div class="reading-seal">Зал раскладов</div>
+      <h2 id="readingTitle">Ваш расклад</h2>
+      <p class="reading-intro">Задайте себе вопрос. Откройте одну карту для главной темы или три — для взгляда на путь от прошлого к следующему шагу.</p>
+      <div class="reading-controls" role="group" aria-label="Выберите расклад">
+        <button id="spreadOneButton" type="button" disabled aria-pressed="false">✦ Одна карта</button>
+        <button id="spreadThreeButton" type="button" disabled aria-pressed="false">✧ Три карты</button>
+      </div>
+      <p id="readingStatus" class="reading-status" role="status" aria-live="polite">Подключаемся к ВК для расклада…</p>
+      <div id="readingDeck" class="reading-deck" role="list" aria-label="Карты расклада"></div>
+      <div id="readingInterpretations" class="reading-interpretations" aria-live="polite"></div>
+      <p class="reading-note">Расклады бесплатны и не начисляют кристаллы. Карты помогают размышлять, но не предсказывают будущее.</p>
+    </section>
+    <section class="card tasks" aria-labelledby="tasksTitle">
+      <h2 id="tasksTitle">Дела дня</h2>
+      <div id="missions" class="mission-list"><span class="muted">Ожидание авторизации…</span></div>
+    </section>
+    <section class="card collection" aria-labelledby="collectionTitle">
+      <h2 id="collectionTitle">Собранные Старшие Арканы</h2>
+      <div id="collection" class="collection-grid" role="list" aria-label="Коллекция 22 арканов"></div>
+    </section>
+    <section class="card achievements" aria-labelledby="achievementsTitle">
+      <h2 id="achievementsTitle">Достижения</h2>
+      <div id="achievements" class="achievements-grid"></div>
+    </section>
+    <p class="art-provenance">Исторические иллюстрации Памелы Колман Смит (1909). Коллекция и ежедневные достижения сохраняются на сервере.</p>
+    <footer>Карты предназначены для развлечения и размышления. Кристаллы не являются деньгами и не подлежат обмену.</footer>
+  </main>
+</body>
+</html>
